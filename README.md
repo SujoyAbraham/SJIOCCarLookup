@@ -101,13 +101,13 @@ vercel --prod
 - "What car does Michael drive?"
 
 ### Search by Manufacturer
-- "List all Jaguar cars"
-- "Show BMW vehicles"
-- "Audi cars in the club"
+- "List all Toyota cars"
+- "Show Honda vehicles"
+- "Tesla cars in our community"
 
-### Search by Car Number
-- "Find GJ-01-AB-1234"
-- "Look up car number GJ-15-CD-8901"
+### Search by License Plate
+- "Find ABC-1234"
+- "Look up license plate DEF5678" (works with or without dashes)
 
 ### Statistics & Lists
 - "How many members?"
@@ -135,8 +135,8 @@ The chatbot reads data from `members_data.csv` with the following columns:
 | Last Name | Member's last name | Smith |
 | Member | Membership status (Y/N) | Y |
 | Car Type | Type of vehicle | Sedan |
-| Car Manufacturer | Car brand | Jaguar |
-| Car Number | Registration number | GJ-01-AB-1234 |
+| Car Manufacturer | Car brand | Toyota |
+| Car Number | US License Plate | ABC-1234 |
 
 ## 🔧 Configuration
 

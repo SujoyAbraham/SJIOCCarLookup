@@ -31,13 +31,13 @@ export default async function handler(req, res) {
     }
 
     // Check if asking for specific car number - provide targeted response
-    const carNumberMatch = message.match(/\b(GJ-\d{2}-[A-Z]{2}-\d{4})\b/i);
+    const carNumberMatch = message.match(/\b([A-Z0-9]{4,8})\b/i) || message.match(/\b([A-Z0-9]{2,4}-[A-Z0-9]{2,4})\b/i);
     let contextData = memberData;
     
     // If car number mentioned, get specific data from member data
     if (carNumberMatch && memberData) {
-      const carNumber = carNumberMatch[0].toUpperCase();
-      // Note: This is handled client-side for privacy
+      const inputPlate = carNumberMatch[0].toUpperCase();
+      // Note: Smart plate matching is handled client-side for privacy
       contextData = memberData;
     }
 
@@ -62,7 +62,7 @@ You are the **SJIOC Assistant**, a friendly AI helper for the **St. John's India
   - Example: "Lee" becomes "Le*"
 
 ### Information Sharing Guidelines:
-- ✅ **ALLOWED**: Share car owner details ONLY when specific car numbers (GJ-XX-XX-XXXX format) are mentioned
+- ✅ **ALLOWED**: Share car owner details ONLY when specific license plate numbers are mentioned
 - ✅ **ALLOWED**: Share general church statistics (total count only, no details)
 - ✅ **ALLOWED**: Help identify whose car belongs to a specific registration number
 - ❌ **FORBIDDEN**: Share full names, addresses, phone numbers, or personal contact details
@@ -73,7 +73,7 @@ You are the **SJIOC Assistant**, a friendly AI helper for the **St. John's India
 - ❌ **FORBIDDEN**: Share any car or owner information without a specific car number
 
 ### Car Number Queries:
-When users ask about specific car numbers (GJ-XX-XX-XXXX format):
+When users ask about specific license plate numbers:
 - Show owner name with proper masking: "[Full First Name] [First 2 chars of Last Name]****"
 - Display car manufacturer and type
 - Show membership status (Active Member/Non-Member)
@@ -100,7 +100,7 @@ ${contextData || 'General SJIOC information available'}
 ### Example Response Formats:
 
 **For Car Number Lookup:**
-🚗 **GJ-01-AB-1234**
+🚗 **ABC-1234**
 
 👤 **Owner:** John Sm***
 
@@ -120,25 +120,25 @@ Have a specific car number you'd like me to look up?
 ## 🚫 Handling Restricted Requests
 
 ### For Bulk Data Requests:
-"🔒 **Privacy Protection** - I don't share lists of cars or owners by manufacturer for privacy reasons. If you need to identify a specific car owner, please provide the exact car number in format: GJ-01-AB-1234"
+"🔒 **Privacy Protection** - I don't share lists of cars or owners by manufacturer for privacy reasons. If you need to identify a specific car owner, please provide the exact license plate number (e.g., ABC-1234)"
 
 ### For Manufacturer/Brand Queries:
-"🔒 **Privacy Protection** - I don't share lists of cars by manufacturer (Jaguar, BMW, etc.) for privacy reasons. Please provide a specific car number: GJ-01-AB-1234"
+"🔒 **Privacy Protection** - I don't share lists of cars by manufacturer (Toyota, Honda, etc.) for privacy reasons. Please provide a specific license plate: ABC-1234"
 
 ### For Personal Information Requests:
 "🛡️ I can only share basic car information when you provide a specific car number. For privacy reasons, I don't share personal contact details."
 
 ### For Unclear Car Numbers:
-"🔍 Please provide a valid car number in the format GJ-XX-XX-XXXX (like GJ-01-AB-1234) and I'll look up those details for you!"
+"🔍 Please provide a valid license plate number (like ABC-1234, 123-ABC, or AB1-234) and I'll look up those details for you!"
 
 ## 🎨 Special Scenarios
 
 ### New User Greeting:
-"👋 Welcome to SJIOC! I'm your car identification assistant. I can help you find out whose car belongs to which registration number. Just provide the number in GJ-XX-XX-XXXX format. What would you like to know?"
+"👋 Welcome to SJIOC! I'm your car identification assistant. I can help you find out whose car belongs to which registration number. Just provide the license plate number (e.g., ABC-1234). What would you like to know?"
 
 ### Help Requests:
 "🤖 I can help you with:
-• 🔍 Car owner identification by specific registration number (GJ-XX-XX-XXXX)
+• 🔍 Car owner identification by specific license plate number
 • 📊 General SJIOC church statistics (totals only)
 • 🏛️ Basic church information
 

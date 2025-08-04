@@ -155,14 +155,25 @@ class SJIOCChatbot {
     async getAIResponse(message) {
         try {
             // Check if asking for specific car number - provide targeted response
-            const carNumberMatch = message.match(/\b(GJ-\d{2}-[A-Z]{2}-\d{4})\b/i);
+            const carNumberMatch = message.match(/\b([A-Z0-9]{4,8})\b/i) || message.match(/\b([A-Z0-9]{2,4}-[A-Z0-9]{2,4})\b/i);
             let specificCarData = null;
             
             if (carNumberMatch) {
-                const carNumber = carNumberMatch[0].toUpperCase();
+                const inputPlate = carNumberMatch[0].toUpperCase();
+                
+                // Smart plate matching - try exact match first, then fuzzy match without dashes
                 specificCarData = this.membersData.find(member => 
-                    member['Car Number']?.toUpperCase() === carNumber
+                    member['Car Number']?.toUpperCase() === inputPlate
                 );
+                
+                // If no exact match, try matching without dashes/symbols
+                if (!specificCarData) {
+                    const inputWithoutSymbols = inputPlate.replace(/[^A-Z0-9]/g, '');
+                    specificCarData = this.membersData.find(member => {
+                        const plateWithoutSymbols = member['Car Number']?.replace(/[^A-Z0-9]/g, '').toUpperCase();
+                        return plateWithoutSymbols === inputWithoutSymbols;
+                    });
+                }
             }
 
             // Use API endpoint instead of direct OpenAI call for security
@@ -200,12 +211,25 @@ class SJIOCChatbot {
         const lowerMessage = message.toLowerCase();
         
         // ONLY respond to specific car number queries - privacy protection
-        const carNumberMatch = message.match(/\b(GJ-\d{2}-[A-Z]{2}-\d{4})\b/i);
+        const carNumberMatch = message.match(/\b([A-Z0-9]{4,8})\b/i) || message.match(/\b([A-Z0-9]{2,4}-[A-Z0-9]{2,4})\b/i);
         if (carNumberMatch) {
-            const carNumber = carNumberMatch[0].toUpperCase();
-            const specificCarData = this.membersData.find(member => 
-                member['Car Number']?.toUpperCase() === carNumber
+            const inputPlate = carNumberMatch[0].toUpperCase();
+            
+            // Smart plate matching - try exact match first, then fuzzy match without dashes
+            let specificCarData = this.membersData.find(member => 
+                member['Car Number']?.toUpperCase() === inputPlate
             );
+            
+            // If no exact match, try matching without dashes/symbols
+            if (!specificCarData) {
+                const inputWithoutSymbols = inputPlate.replace(/[^A-Z0-9]/g, '');
+                specificCarData = this.membersData.find(member => {
+                    const plateWithoutSymbols = member['Car Number']?.replace(/[^A-Z0-9]/g, '').toUpperCase();
+                    return plateWithoutSymbols === inputWithoutSymbols;
+                });
+            }
+            
+            const displayPlate = specificCarData ? specificCarData['Car Number'] : inputPlate;
             
             if (specificCarData) {
                 const memberStatus = specificCarData.Member === 'Y' ? 'Active Member' : 'Non-Member';
@@ -215,20 +239,20 @@ class SJIOCChatbot {
                 const lastName = specificCarData['Last Name'] || '';
                 const maskedLastName = lastName.length >= 2 ? lastName.substring(0, 2) + '*'.repeat(Math.max(0, lastName.length - 2)) : lastName;
                 
-                return `🚗 **${carNumber}**\n\n👤 **Owner:** ${firstName} ${maskedLastName}\n\n🚙 **Vehicle:** ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']}\n\n📋 **Status:** ${memberStatus}\n\n📞 Please contact the owner directly or connect with Trustee OR Secretary.\n\nNeed help with anything else about this vehicle?`;
+                return `🚗 **${displayPlate}**\n\n👤 **Owner:** ${firstName} ${maskedLastName}\n\n🚙 **Vehicle:** ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']}\n\n📋 **Status:** ${memberStatus}\n\n📞 Please contact the owner directly or connect with Trustee OR Secretary.\n\nNeed help with anything else about this vehicle?`;
             } else {
-                return `🔍 I don't have information about car number ${carNumber} in our database. Please check the number and try again.`;
+                return `🔍 I don't have information about license plate ${inputPlate} in our database. Please check the number and try again.`;
             }
         }
         
         // Block all manufacturer/brand queries for privacy
         if (lowerMessage.includes('jaguar') || lowerMessage.includes('bmw') || lowerMessage.includes('audi') || lowerMessage.includes('mercedes') || lowerMessage.includes('all cars') || lowerMessage.includes('list cars')) {
-            return "🔒 **Privacy Protection**\n\nI don't share lists of cars or owners by manufacturer for privacy reasons.\n\nIf you need to identify a specific car owner, please provide the exact car number in this format: **GJ-01-AB-1234**\n\nThis helps protect our church member privacy.";
+            return "🔒 **Privacy Protection**\n\nI don't share lists of cars or owners by manufacturer for privacy reasons.\n\nIf you need to identify a specific car owner, please provide the exact car number in this format: **ABC-1234**\n\nThis helps protect our church member privacy.";
         }
         
         // Common greetings
         if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
-            return "👋 Welcome to SJIOC! I'm your car identification assistant. I can help you find out whose car belongs to which registration number. Just provide the number in GJ-XX-XX-XXXX format. What would you like to know?";
+            return "👋 Welcome to SJIOC! I'm your car identification assistant. I can help you find out whose car belongs to which registration number. Just provide the license plate number (e.g., ABC-1234). What would you like to know?";
         }
         
         // Help requests
@@ -518,7 +542,7 @@ class SJIOCChatbot {
     }
 
     isCarNumberQuery(message) {
-        return message.includes('gj-') || message.includes('car number') || message.includes('registration');
+        return /[a-z0-9]{4,8}/i.test(message) || /[a-z0-9]{2,4}-[a-z0-9]{2,4}/i.test(message) || message.includes('car number') || message.includes('registration') || message.includes('license plate') || message.includes('plate number');
     }
 
     isMemberQuery(message) {
@@ -595,11 +619,11 @@ class SJIOCChatbot {
     }
 
     searchByCarNumber(message) {
-        const carNumberPattern = /gj-\d{2}-[a-z]{2}-\d{4}/i;
+        const carNumberPattern = /[a-z0-9]{4,8}/i;
         const match = message.match(carNumberPattern);
         
         if (!match) {
-            return "Please provide a valid car number format (e.g., GJ-01-AB-1234).";
+            return "Please provide a valid license plate format (e.g., ABC-1234, 123-ABC, AB1-234).";
         }
 
         const carNumber = match[0].toUpperCase();
