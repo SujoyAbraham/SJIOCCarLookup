@@ -280,7 +280,6 @@ class SJIOCChatbot {
                 return null; // Will fall through to other responses
             }
         }
-        }
         
         // Block all manufacturer/brand queries for privacy
         if (lowerMessage.includes('jaguar') || lowerMessage.includes('bmw') || lowerMessage.includes('audi') || lowerMessage.includes('mercedes') || lowerMessage.includes('all cars') || lowerMessage.includes('list cars')) {
