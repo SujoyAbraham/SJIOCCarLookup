@@ -1,0 +1,28 @@
+{
+  "name": "sjioc-car-lookup",
+  "version": "1.0.0",
+  "description": "SJIOC Car Lookup Chatbot with Admin Panel",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required for static site'",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "multiparty": "^4.2.3"
+  },
+  "devDependencies": {
+    "@vercel/node": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "chatbot",
+    "car-lookup",
+    "church",
+    "member-management"
+  ],
+  "author": "SJIOC",
+  "license": "MIT"
+}

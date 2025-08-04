@@ -1,0 +1,629 @@
+class SJIOCChatbot {
+    constructor() {
+        this.membersData = [];
+        this.isAdminMode = false;
+        this.adminAuthenticated = false;
+        this.pendingUpload = null;
+        this.chatbotToggle = document.getElementById('chatbotToggle');
+        this.chatbotPopup = document.getElementById('chatbotPopup');
+        this.chatbotClose = document.getElementById('chatbotClose');
+        this.chatbotInput = document.getElementById('chatbotInput');
+        this.chatbotSend = document.getElementById('chatbotSend');
+        this.chatbotMessages = document.getElementById('chatbotMessages');
+        
+        this.initializeEventListeners();
+        this.loadMemberData();
+    }
+
+    initializeEventListeners() {
+        this.chatbotToggle.addEventListener('click', () => this.toggleChatbot());
+        this.chatbotClose.addEventListener('click', () => this.closeChatbot());
+        this.chatbotSend.addEventListener('click', () => this.sendMessage());
+        this.chatbotInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.sendMessage();
+        });
+    }
+
+    toggleChatbot() {
+        this.chatbotPopup.classList.toggle('active');
+        if (this.chatbotPopup.classList.contains('active')) {
+            this.chatbotInput.focus();
+        }
+    }
+
+    closeChatbot() {
+        this.chatbotPopup.classList.remove('active');
+    }
+
+    async loadMemberData() {
+        try {
+            // Try JSON first (for Vercel deployment), fallback to CSV
+            let response = await fetch('/api/members');
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    this.membersData = result.data;
+                    return;
+                }
+            }
+            
+            // Fallback to CSV for local development
+            response = await fetch('members_data.csv');
+            const csvText = await response.text();
+            this.parseCSV(csvText);
+        } catch (error) {
+            console.error('Error loading member data:', error);
+            this.addBotMessage('Sorry, I encountered an error loading the member data. Please try again later.');
+        }
+    }
+
+    parseCSV(csvText) {
+        const lines = csvText.trim().split('\n');
+        const headers = lines[0].split(',').map(header => header.trim());
+        
+        this.membersData = lines.slice(1).map(line => {
+            const values = line.split(',').map(value => value.trim());
+            const member = {};
+            headers.forEach((header, index) => {
+                member[header] = values[index] || '';
+            });
+            return member;
+        });
+    }
+
+    sendMessage() {
+        const message = this.chatbotInput.value.trim();
+        if (!message) return;
+
+        this.addUserMessage(message);
+        this.chatbotInput.value = '';
+        
+        setTimeout(() => {
+            this.showTypingIndicator();
+            setTimeout(async () => {
+                this.hideTypingIndicator();
+                await this.processUserMessage(message);
+            }, 1000);
+        }, 100);
+    }
+
+    addUserMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message user-message';
+        messageDiv.innerHTML = `
+            <div class="message-content">${message}</div>
+            <div class="message-time">${this.getCurrentTime()}</div>
+        `;
+        this.chatbotMessages.appendChild(messageDiv);
+        this.scrollToBottom();
+    }
+
+    addBotMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot-message';
+        messageDiv.innerHTML = `
+            <div class="message-content">${message}</div>
+            <div class="message-time">${this.getCurrentTime()}</div>
+        `;
+        this.chatbotMessages.appendChild(messageDiv);
+        this.scrollToBottom();
+    }
+
+    showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message bot-message typing-message';
+        typingDiv.innerHTML = `
+            <div class="typing-indicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        `;
+        this.chatbotMessages.appendChild(typingDiv);
+        this.scrollToBottom();
+    }
+
+    hideTypingIndicator() {
+        const typingMessage = this.chatbotMessages.querySelector('.typing-message');
+        if (typingMessage) {
+            typingMessage.remove();
+        }
+    }
+
+    async processUserMessage(message) {
+        const lowerMessage = message.toLowerCase();
+        let response = '';
+
+        // Check for admin commands first
+        if (this.isAdminCommand(lowerMessage)) {
+            response = await this.handleAdminCommand(message);
+        } else if (this.isGreeting(lowerMessage)) {
+            response = this.getGreetingResponse();
+        } else if (this.isNameQuery(lowerMessage)) {
+            response = this.searchByName(lowerMessage);
+        } else if (this.isManufacturerQuery(lowerMessage)) {
+            response = this.searchByManufacturer(lowerMessage);
+        } else if (this.isCarNumberQuery(lowerMessage)) {
+            response = this.searchByCarNumber(lowerMessage);
+        } else if (this.isMemberQuery(lowerMessage)) {
+            response = this.getMemberStats();
+        } else if (this.isListQuery(lowerMessage)) {
+            response = this.getListResponse(lowerMessage);
+        } else if (this.isHelpQuery(lowerMessage)) {
+            response = this.getHelpResponse();
+        } else {
+            response = await this.getAIResponse(message);
+        }
+
+        this.addBotMessage(response);
+    }
+
+    async getAIResponse(message) {
+        try {
+            const apiKey = process.env.OPENAI_API_KEY || window.OPENAI_API_KEY;
+            if (!apiKey) {
+                return "I'd like to help with that question, but I need an OpenAI API key to provide AI responses. Please contact the administrator to set up the API key.";
+            }
+
+            const context = this.buildContextFromData();
+            const systemPrompt = `You are a helpful assistant for the Saurashtra Jaguar Owners Club (SJIOC). You have access to member data and can answer questions about cars, members, and the club. 
+
+Context about our members:
+${context}
+
+Guidelines:
+- Be friendly and helpful
+- If asked about specific members or cars, use the data provided
+- For general car knowledge or Jaguar information, provide helpful answers
+- Keep responses concise but informative
+- Use emojis appropriately to make responses engaging`;
+
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: message }
+                    ],
+                    max_tokens: 300,
+                    temperature: 0.7
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API request failed with status ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content;
+
+        } catch (error) {
+            console.error('Error calling OpenAI API:', error);
+            return "I'm having trouble connecting to my AI assistant right now. Please try asking about specific member names, car numbers, or manufacturers instead.";
+        }
+    }
+
+    buildContextFromData() {
+        const memberCount = this.membersData.length;
+        const activeMembers = this.membersData.filter(m => m.Member === 'Y').length;
+        const manufacturers = [...new Set(this.membersData.map(m => m['Car Manufacturer']))];
+        
+        return `Total members: ${memberCount}, Active members: ${activeMembers}, Car brands: ${manufacturers.join(', ')}`;
+    }
+
+    isAdminCommand(message) {
+        const adminCommands = ['/admin', '/login', '/upload', '/stats', '/logout', '/help-admin'];
+        return adminCommands.some(cmd => message.startsWith(cmd)) || 
+               (this.adminAuthenticated && message.includes('upload file'));
+    }
+
+    async handleAdminCommand(message) {
+        const lowerMessage = message.toLowerCase();
+        
+        if (lowerMessage.startsWith('/admin') || lowerMessage.startsWith('/login')) {
+            return this.handleAdminLogin(message);
+        }
+        
+        if (!this.adminAuthenticated) {
+            return "🔐 **Admin Access Required**\n\nPlease authenticate first using:\n`/admin <password>`\n\n*This is a secure area for authorized church administrators only.*";
+        }
+        
+        if (lowerMessage.startsWith('/stats')) {
+            return this.getAdminStats();
+        } else if (lowerMessage.startsWith('/upload')) {
+            return this.handleUploadCommand();
+        } else if (lowerMessage.startsWith('/logout')) {
+            return this.handleAdminLogout();
+        } else if (lowerMessage.startsWith('/help-admin')) {
+            return this.getAdminHelp();
+        }
+        
+        return "❓ Unknown admin command. Type `/help-admin` for available commands.";
+    }
+
+    handleAdminLogin(message) {
+        const parts = message.split(' ');
+        if (parts.length < 2) {
+            return "🔐 **Admin Login**\n\nUsage: `/admin <password>`\n\n*Enter the admin password to access management functions.*";
+        }
+        
+        const password = parts.slice(1).join(' ');
+        
+        // Simple password check (in production, use proper hashing)
+        const adminPassword = 'sjioc-admin-2024'; // This should be in environment variables
+        
+        if (password === adminPassword) {
+            this.adminAuthenticated = true;
+            this.isAdminMode = true;
+            this.updateChatbotHeader(true);
+            return "✅ **Admin Authenticated**\n\n🛡️ You now have administrative access.\n\n**Available Commands:**\n" +
+                   "• `/stats` - View database statistics\n" +
+                   "• `/upload` - Upload new member data\n" +
+                   "• `/help-admin` - Show admin help\n" +
+                   "• `/logout` - Exit admin mode\n\n" +
+                   "*Remember to logout when finished.*";
+        } else {
+            // Add delay to prevent brute force
+            setTimeout(() => {}, 2000);
+            return "❌ **Authentication Failed**\n\nInvalid admin password. Access denied.\n\n*Please contact the system administrator if you believe this is an error.*";
+        }
+    }
+
+    handleAdminLogout() {
+        this.adminAuthenticated = false;
+        this.isAdminMode = false;
+        this.pendingUpload = null;
+        this.updateChatbotHeader(false);
+        return "👋 **Admin Logout**\n\nYou have been logged out of admin mode.\n\n*Thank you for keeping our member data secure.*";
+    }
+
+    getAdminStats() {
+        const activeMembers = this.membersData.filter(m => m.Member === 'Y');
+        const nonMembers = this.membersData.filter(m => m.Member === 'N');
+        const jaguarCars = this.membersData.filter(m => m['Car Manufacturer'] === 'Jaguar');
+        const manufacturers = [...new Set(this.membersData.map(m => m['Car Manufacturer']))];
+        
+        return "📊 **Database Statistics**\n\n" +
+               `📈 **Total Records:** ${this.membersData.length}\n` +
+               `✅ **Active Members:** ${activeMembers.length}\n` +
+               `❌ **Non-Members:** ${nonMembers.length}\n` +
+               `🐆 **Jaguar Cars:** ${jaguarCars.length}\n` +
+               `🚗 **Other Brands:** ${this.membersData.length - jaguarCars.length}\n` +
+               `🏭 **Manufacturers:** ${manufacturers.join(', ')}\n\n` +
+               `*Last updated: ${new Date().toLocaleString()}*`;
+    }
+
+    handleUploadCommand() {
+        this.createFileUploader();
+        return "📁 **File Upload Interface**\n\nA file upload dialog has been created below. Please select your CSV file.\n\n" +
+               "**Requirements:**\n" +
+               "• CSV format with required columns\n" +
+               "• Car numbers in GJ-XX-XX-XXXX format\n" +
+               "• Maximum file size: 5MB\n" +
+               "• Backup will be created automatically\n\n" +
+               "*Please ensure your CSV file follows the correct format before uploading.*";
+    }
+
+    createFileUploader() {
+        const uploaderHtml = `
+            <div class="admin-uploader" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0; border: 2px dashed #3498db;">
+                <h4 style="margin-top: 0; color: #2c3e50;">📤 Upload Member Data</h4>
+                <input type="file" id="adminFileInput" accept=".csv" style="margin: 10px 0; padding: 5px;">
+                <br>
+                <label style="font-size: 12px;">
+                    <input type="checkbox" id="confirmUpload"> I confirm this will replace all current data (backup created)
+                </label>
+                <br><br>
+                <button onclick="window.chatbot.processUpload()" 
+                        style="background: #e74c3c; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;"
+                        id="uploadButton" disabled>
+                    🔄 Update Database
+                </button>
+                <button onclick="window.chatbot.cancelUpload()" 
+                        style="background: #95a5a6; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                    ❌ Cancel
+                </button>
+            </div>
+        `;
+        
+        const uploaderDiv = document.createElement('div');
+        uploaderDiv.innerHTML = uploaderHtml;
+        uploaderDiv.className = 'message bot-message admin-uploader-message';
+        uploaderDiv.innerHTML += `<div class="message-time">${this.getCurrentTime()}</div>`;
+        
+        this.chatbotMessages.appendChild(uploaderDiv);
+        this.scrollToBottom();
+        
+        // Add event listeners
+        const fileInput = document.getElementById('adminFileInput');
+        const confirmCheckbox = document.getElementById('confirmUpload');
+        const uploadButton = document.getElementById('uploadButton');
+        
+        const validateUpload = () => {
+            const file = fileInput.files[0];
+            const confirmed = confirmCheckbox.checked;
+            uploadButton.disabled = !(file && confirmed && file.name.toLowerCase().endsWith('.csv'));
+        };
+        
+        fileInput.addEventListener('change', validateUpload);
+        confirmCheckbox.addEventListener('change', validateUpload);
+        
+        window.chatbot = this; // Make accessible to onclick handlers
+    }
+
+    async processUpload() {
+        const fileInput = document.getElementById('adminFileInput');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            this.addBotMessage("❌ **Upload Error**\n\nNo file selected.");
+            return;
+        }
+        
+        this.addBotMessage("⏳ **Processing Upload**\n\nValidating and uploading file...");
+        
+        try {
+            const formData = new FormData();
+            formData.append('csvFile', file);
+            formData.append('password', 'sjioc-admin-2024'); // Use the same admin password
+            
+            const response = await fetch('/api/admin-upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.addBotMessage(`✅ **Upload Successful**\n\n${result.message}\n\n*Database has been updated. Reloading data...*`);
+                await this.loadMemberData();
+                this.removeUploader();
+            } else {
+                this.addBotMessage(`❌ **Upload Failed**\n\n${result.error}\n\n*Please check your file format and try again.*`);
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            this.addBotMessage("❌ **Upload Error**\n\nFailed to upload file. Please try again or contact support.");
+        }
+    }
+
+    cancelUpload() {
+        this.removeUploader();
+        this.addBotMessage("🚫 **Upload Cancelled**\n\nFile upload has been cancelled.");
+    }
+
+    removeUploader() {
+        const uploader = document.querySelector('.admin-uploader-message');
+        if (uploader) {
+            uploader.remove();
+        }
+    }
+
+    updateChatbotHeader(isAdmin) {
+        const header = document.querySelector('.chatbot-title h3');
+        const subtitle = document.querySelector('.chatbot-title p');
+        
+        if (isAdmin) {
+            header.innerHTML = '🔐 SJIOC Admin Console';
+            subtitle.innerHTML = 'Administrative access enabled';
+            this.chatbotPopup.style.borderTop = '3px solid #e74c3c';
+        } else {
+            header.innerHTML = '🚗 SJIOC Car Assistant';
+            subtitle.innerHTML = 'Ask me about member cars!';
+            this.chatbotPopup.style.borderTop = '';
+        }
+    }
+
+    getAdminHelp() {
+        return "🛠️ **Admin Command Reference**\n\n" +
+               "**Authentication:**\n" +
+               "• `/admin <password>` - Login to admin mode\n" +
+               "• `/logout` - Exit admin mode\n\n" +
+               "**Data Management:**\n" +
+               "• `/stats` - View database statistics\n" +
+               "• `/upload` - Upload new member CSV file\n\n" +
+               "**File Format Requirements:**\n" +
+               "• Required columns: First Name, Last Name, Member, Car Type, Car Manufacturer, Car Number\n" +
+               "• Car numbers: GJ-XX-XX-XXXX format\n" +
+               "• Member field: Y/N for active/inactive\n" +
+               "• CSV format only, max 5MB\n\n" +
+               "*All admin actions are logged for security.*";
+    }
+
+    isGreeting(message) {
+        const greetings = ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'];
+        return greetings.some(greeting => message.includes(greeting));
+    }
+
+    isNameQuery(message) {
+        return message.includes("'s car") || 
+               message.includes("car of") || 
+               message.includes("find") && (message.includes("car") || message.includes("member")) ||
+               message.includes("show me") && message.includes("car") ||
+               this.containsName(message);
+    }
+
+    isManufacturerQuery(message) {
+        const manufacturers = ['jaguar', 'bmw', 'audi', 'mercedes'];
+        return manufacturers.some(brand => message.includes(brand)) && (message.includes('car') || message.includes('list'));
+    }
+
+    isCarNumberQuery(message) {
+        return message.includes('gj-') || message.includes('car number') || message.includes('registration');
+    }
+
+    isMemberQuery(message) {
+        return message.includes('member') && (message.includes('count') || message.includes('total') || message.includes('how many'));
+    }
+
+    isListQuery(message) {
+        return message.includes('list') || message.includes('show all') || message.includes('all cars');
+    }
+
+    isHelpQuery(message) {
+        return message.includes('help') || message.includes('what can you do') || message.includes('commands');
+    }
+
+    containsName(message) {
+        const names = this.membersData.flatMap(member => [
+            member['First Name']?.toLowerCase(),
+            member['Last Name']?.toLowerCase(),
+            `${member['First Name']} ${member['Last Name']}`.toLowerCase()
+        ]);
+        return names.some(name => name && message.includes(name));
+    }
+
+    searchByName(message) {
+        const found = this.membersData.filter(member => {
+            const fullName = `${member['First Name']} ${member['Last Name']}`.toLowerCase();
+            const firstName = member['First Name']?.toLowerCase();
+            const lastName = member['Last Name']?.toLowerCase();
+            
+            return message.includes(fullName) || 
+                   message.includes(firstName) || 
+                   message.includes(lastName);
+        });
+
+        if (found.length === 0) {
+            return "I couldn't find any member with that name. Please check the spelling or try a different name.";
+        }
+
+        let response = found.length === 1 ? "Here's the car information:\n\n" : "I found multiple matches:\n\n";
+        
+        found.forEach(member => {
+            const memberStatus = member.Member === 'Y' ? '✅ Active Member' : '❌ Non-Member';
+            response += `👤 **${member['First Name']} ${member['Last Name']}**\n`;
+            response += `${memberStatus}\n`;
+            response += `🚗 ${member['Car Type']} by ${member['Car Manufacturer']}\n`;
+            response += `🔢 ${member['Car Number']}\n\n`;
+        });
+
+        return response;
+    }
+
+    searchByManufacturer(message) {
+        let manufacturer = '';
+        if (message.includes('jaguar')) manufacturer = 'Jaguar';
+        else if (message.includes('bmw')) manufacturer = 'BMW';
+        else if (message.includes('audi')) manufacturer = 'Audi';
+        else if (message.includes('mercedes')) manufacturer = 'Mercedes';
+
+        const found = this.membersData.filter(member => 
+            member['Car Manufacturer'] === manufacturer
+        );
+
+        if (found.length === 0) {
+            return `No ${manufacturer} cars found in our database.`;
+        }
+
+        let response = `Found ${found.length} ${manufacturer} car(s):\n\n`;
+        found.forEach(member => {
+            const memberStatus = member.Member === 'Y' ? '✅' : '❌';
+            response += `${memberStatus} ${member['First Name']} ${member['Last Name']} - ${member['Car Type']} (${member['Car Number']})\n`;
+        });
+
+        return response;
+    }
+
+    searchByCarNumber(message) {
+        const carNumberPattern = /gj-\d{2}-[a-z]{2}-\d{4}/i;
+        const match = message.match(carNumberPattern);
+        
+        if (!match) {
+            return "Please provide a valid car number format (e.g., GJ-01-AB-1234).";
+        }
+
+        const carNumber = match[0].toUpperCase();
+        const found = this.membersData.find(member => 
+            member['Car Number'].toUpperCase() === carNumber
+        );
+
+        if (!found) {
+            return `No car found with number ${carNumber}.`;
+        }
+
+        const memberStatus = found.Member === 'Y' ? '✅ Active Member' : '❌ Non-Member';
+        return `Car Details for ${carNumber}:\n\n` +
+               `👤 **${found['First Name']} ${found['Last Name']}**\n` +
+               `${memberStatus}\n` +
+               `🚗 ${found['Car Type']} by ${found['Car Manufacturer']}`;
+    }
+
+    getMemberStats() {
+        const activeMembers = this.membersData.filter(member => member.Member === 'Y');
+        const nonMembers = this.membersData.filter(member => member.Member === 'N');
+        
+        const jaguarCars = this.membersData.filter(member => member['Car Manufacturer'] === 'Jaguar');
+        
+        return `📊 **SJIOC Statistics:**\n\n` +
+               `👥 Total Records: ${this.membersData.length}\n` +
+               `✅ Active Members: ${activeMembers.length}\n` +
+               `❌ Non-Members: ${nonMembers.length}\n` +
+               `🐆 Jaguar Cars: ${jaguarCars.length}\n` +
+               `🚗 Other Brands: ${this.membersData.length - jaguarCars.length}`;
+    }
+
+    getListResponse(message) {
+        if (message.includes('jaguar')) {
+            return this.searchByManufacturer('jaguar cars');
+        } else if (message.includes('member')) {
+            const activeMembers = this.membersData.filter(member => member.Member === 'Y');
+            let response = `📋 **Active SJIOC Members (${activeMembers.length}):**\n\n`;
+            activeMembers.forEach(member => {
+                response += `👤 ${member['First Name']} ${member['Last Name']} - ${member['Car Manufacturer']} ${member['Car Type']}\n`;
+            });
+            return response;
+        } else {
+            return this.getMemberStats();
+        }
+    }
+
+    getGreetingResponse() {
+        const responses = [
+            "Hello! I'm your SJIOC car assistant. How can I help you today?",
+            "Hi there! Ready to explore our Jaguar community cars?",
+            "Greetings! Ask me about any SJIOC member's car details.",
+            "Welcome! I can help you find information about our car members."
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    getHelpResponse() {
+        return `🤖 **I can help you with:**\n\n` +
+               `🔍 **Search by name:** "Show me John's car" or "Find Sarah"\n` +
+               `🏭 **By manufacturer:** "List Jaguar cars" or "BMW cars"\n` +
+               `🔢 **By car number:** "Find GJ-01-AB-1234"\n` +
+               `📊 **Statistics:** "How many members?" or "Member count"\n` +
+               `📋 **Lists:** "List all members" or "Show active members"\n\n` +
+               `Just type your question naturally - I'll understand!`;
+    }
+
+    getDefaultResponse() {
+        return "I'm not sure I understand that query. Try asking about:\n" +
+               "• A member's name (e.g., 'John's car')\n" +
+               "• Car manufacturer (e.g., 'Jaguar cars')\n" +
+               "• Car numbers (e.g., 'GJ-01-AB-1234')\n" +
+               "• General info (e.g., 'member count')\n\n" +
+               "Type 'help' for more examples!";
+    }
+
+    getCurrentTime() {
+        return new Date().toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+    }
+
+    scrollToBottom() {
+        this.chatbotMessages.scrollTop = this.chatbotMessages.scrollHeight;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    new SJIOCChatbot();
+});

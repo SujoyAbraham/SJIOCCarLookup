@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SJIOC Car Assistant</title>
+    <link rel="stylesheet" href="chatbot-styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff6b6b' stroke-width='2'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/></svg>">
+</head>
+<body>
+    <div class="chatbot-container">
+        <div class="chatbot-header">
+            <div class="chatbot-title">
+                <h3>🚗 SJIOC Car Assistant</h3>
+                <p>Ask me about member cars!</p>
+            </div>
+            <button class="chatbot-close" id="chatbotClose" title="Close">×</button>
+        </div>
+        
+        <div class="chatbot-messages" id="chatbotMessages">
+            <div class="message bot-message">
+                <div class="message-content">
+                    Hi! I'm your SJIOC car lookup assistant. You can ask me about:
+                    <br>• Car details by member name
+                    <br>• Cars by manufacturer (e.g., "Jaguar cars")
+                    <br>• Car numbers and types
+                    <br>• Member information
+                    <br><br>Try asking: "Show me John's car" or "List all Jaguar cars"
+                </div>
+                <div class="message-time"></div>
+            </div>
+        </div>
+        
+        <div class="chatbot-input-container">
+            <input type="text" id="chatbotInput" placeholder="Ask about cars, members, or manufacturers..." />
+            <button id="chatbotSend" title="Send message">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22,2 15,22 11,13 2,9"></polygon>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script src="chatbot-script.js"></script>
+</body>
+</html>
