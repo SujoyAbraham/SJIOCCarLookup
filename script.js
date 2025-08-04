@@ -203,13 +203,12 @@ class SJIOCChatbot {
             if (specificCarData) {
                 const memberStatus = specificCarData.Member === 'Y' ? 'Active Member' : 'Non-Member';
                 
-                // Privacy protection: Show only first 2 characters of names
+                // Privacy protection: Show full first name + masked last name (first 2 chars + asterisks)
                 const firstName = specificCarData['First Name'] || '';
                 const lastName = specificCarData['Last Name'] || '';
-                const maskedFirstName = firstName.length >= 2 ? firstName.substring(0, 2) + '*'.repeat(Math.max(0, firstName.length - 2)) : firstName;
                 const maskedLastName = lastName.length >= 2 ? lastName.substring(0, 2) + '*'.repeat(Math.max(0, lastName.length - 2)) : lastName;
                 
-                return `🚗 **${carNumber}**\n\n👤 **Owner:** ${maskedFirstName} ${maskedLastName}\n🚙 **Vehicle:** ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']}\n📋 **Status:** ${memberStatus}\n\n*Ask me about car maintenance or other automotive topics!*`;
+                return `🚗 **${carNumber}**\n\n👤 **Owner:** ${firstName} ${maskedLastName}\n🚙 **Vehicle:** ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']}\n📋 **Status:** ${memberStatus}\n\n📞 Please contact the owner directly or connect with Trustee OR Secretary.\n\nNeed help with anything else about this vehicle?`;
             } else {
                 return `🔍 I don't have information about car number ${carNumber} in our database. Please check the number and try again.`;
             }
@@ -217,12 +216,12 @@ class SJIOCChatbot {
         
         // Common greetings
         if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
-            return "👋 Hello! I'm your SJIOC Car Assistant. I can help with car-related questions or look up specific car numbers like GJ-01-AB-1234. What would you like to know?";
+            return "👋 Welcome to SJIOC! I'm your car assistant. I can help with specific car lookups using registration numbers (GJ-XX-XX-XXXX format) or answer general automotive questions. What would you like to know?";
         }
         
         // Help requests
         if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
-            return "🤖 I can help you with:\n\n🔍 Look up specific car numbers (format: GJ-XX-XX-XXXX)\n🚗 Answer car maintenance questions\n🏢 Provide SJIOC information\n\nTry asking: 'Tell me about GJ-01-AB-1234' or 'What oil is best for Jaguar engines?'";
+            return "🤖 I can help you with:\n• 🔍 Car details by registration number (GJ-XX-XX-XXXX)\n• 🔧 General automotive advice and maintenance tips\n• 📊 SJIOC club statistics and information\n• 🚗 Car manufacturer and type information\n\nJust ask naturally - I'll understand!";
         }
         
         // Car maintenance questions
@@ -241,16 +240,15 @@ class SJIOCChatbot {
 
     buildPrivacyAwareContext(specificCarData = null) {
         if (specificCarData) {
-            // Only provide specific car data when car number is mentioned with masked names
+            // Only provide specific car data when car number is mentioned with proper name masking
             const memberStatus = specificCarData.Member === 'Y' ? 'Active Member' : 'Non-Member';
             
-            // Privacy protection: Show only first 2 characters of names
+            // Privacy protection: Show full first name + masked last name (first 2 chars + asterisks)
             const firstName = specificCarData['First Name'] || '';
             const lastName = specificCarData['Last Name'] || '';
-            const maskedFirstName = firstName.length >= 2 ? firstName.substring(0, 2) + '*'.repeat(Math.max(0, firstName.length - 2)) : firstName;
             const maskedLastName = lastName.length >= 2 ? lastName.substring(0, 2) + '*'.repeat(Math.max(0, lastName.length - 2)) : lastName;
             
-            return `Car ${specificCarData['Car Number']}: Owner ${maskedFirstName} ${maskedLastName}, ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']} - ${memberStatus}`;
+            return `Car ${specificCarData['Car Number']}: Owner ${firstName} ${maskedLastName}, ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']} - ${memberStatus}`;
         }
         
         // General context without personal details
@@ -259,7 +257,7 @@ class SJIOCChatbot {
         const manufacturers = [...new Set(this.membersData.map(m => m['Car Manufacturer']))];
         const carTypes = [...new Set(this.membersData.map(m => m['Car Type']))];
         
-        return `SJIOC has ${totalMembers} registered vehicles with ${activeMembers} active members. Popular brands include ${manufacturers.slice(0, 3).join(', ')}. Car types include ${carTypes.slice(0, 4).join(', ')}.`;
+        return `St. John's Indian Orthodox Church (SJIOC) has ${totalMembers} registered vehicles with ${activeMembers} active members. Popular brands include ${manufacturers.slice(0, 3).join(', ')}. Car types include ${carTypes.slice(0, 4).join(', ')}.`;
     }
 
     buildContextFromData() {
