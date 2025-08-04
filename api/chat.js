@@ -101,7 +101,9 @@ ${contextData || 'General SJIOC information available'}
 🚗 **GJ-01-AB-1234**
 
 👤 **Owner:** John Sm***
-🚙 **Vehicle:** Jaguar Sedan  
+
+🚙 **Vehicle:** Jaguar Sedan
+
 📋 **Status:** Active Member
 
 📞 Please contact the owner directly or connect with Trustee OR Secretary.

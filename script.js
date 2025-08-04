@@ -101,8 +101,15 @@ class SJIOCChatbot {
     addBotMessage(message) {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message bot-message';
+        
+        // Convert newlines to HTML line breaks and preserve formatting
+        const formattedMessage = message
+            .replace(/\n\n/g, '<br><br>') // Double newlines to double line breaks
+            .replace(/\n/g, '<br>') // Single newlines to single line breaks
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Convert **text** to bold
+        
         messageDiv.innerHTML = `
-            <div class="message-content">${message}</div>
+            <div class="message-content">${formattedMessage}</div>
             <div class="message-time">${this.getCurrentTime()}</div>
         `;
         this.chatbotMessages.appendChild(messageDiv);
@@ -208,7 +215,7 @@ class SJIOCChatbot {
                 const lastName = specificCarData['Last Name'] || '';
                 const maskedLastName = lastName.length >= 2 ? lastName.substring(0, 2) + '*'.repeat(Math.max(0, lastName.length - 2)) : lastName;
                 
-                return `🚗 **${carNumber}**\n\n👤 **Owner:** ${firstName} ${maskedLastName}\n🚙 **Vehicle:** ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']}\n📋 **Status:** ${memberStatus}\n\n📞 Please contact the owner directly or connect with Trustee OR Secretary.\n\nNeed help with anything else about this vehicle?`;
+                return `🚗 **${carNumber}**\n\n👤 **Owner:** ${firstName} ${maskedLastName}\n\n🚙 **Vehicle:** ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']}\n\n📋 **Status:** ${memberStatus}\n\n📞 Please contact the owner directly or connect with Trustee OR Secretary.\n\nNeed help with anything else about this vehicle?`;
             } else {
                 return `🔍 I don't have information about car number ${carNumber} in our database. Please check the number and try again.`;
             }
