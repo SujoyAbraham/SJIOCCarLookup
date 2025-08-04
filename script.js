@@ -137,21 +137,8 @@ class SJIOCChatbot {
         // Check for admin commands first
         if (this.isAdminCommand(lowerMessage)) {
             response = await this.handleAdminCommand(message);
-        } else if (this.isGreeting(lowerMessage)) {
-            response = this.getGreetingResponse();
-        } else if (this.isNameQuery(lowerMessage)) {
-            response = this.searchByName(lowerMessage);
-        } else if (this.isManufacturerQuery(lowerMessage)) {
-            response = this.searchByManufacturer(lowerMessage);
-        } else if (this.isCarNumberQuery(lowerMessage)) {
-            response = this.searchByCarNumber(lowerMessage);
-        } else if (this.isMemberQuery(lowerMessage)) {
-            response = this.getMemberStats();
-        } else if (this.isListQuery(lowerMessage)) {
-            response = this.getListResponse(lowerMessage);
-        } else if (this.isHelpQuery(lowerMessage)) {
-            response = this.getHelpResponse();
         } else {
+            // Always use AI for user queries - more engaging and natural
             response = await this.getAIResponse(message);
         }
 
@@ -162,21 +149,41 @@ class SJIOCChatbot {
         try {
             const apiKey = process.env.OPENAI_API_KEY || window.OPENAI_API_KEY;
             if (!apiKey) {
-                return "I'd like to help with that question, but I need an OpenAI API key to provide AI responses. Please contact the administrator to set up the API key.";
+                return "🤖 I'd like to help, but I need my AI connection set up. Please contact the administrator.";
             }
 
-            const context = this.buildContextFromData();
-            const systemPrompt = `You are a helpful assistant for the Saurashtra Jaguar Owners Club (SJIOC). You have access to member data and can answer questions about cars, members, and the club. 
+            // Check if asking for specific car number - provide targeted response
+            const carNumberMatch = message.match(/\b(GJ-\d{2}-[A-Z]{2}-\d{4})\b/i);
+            let specificCarData = null;
+            
+            if (carNumberMatch) {
+                const carNumber = carNumberMatch[0].toUpperCase();
+                specificCarData = this.membersData.find(member => 
+                    member['Car Number']?.toUpperCase() === carNumber
+                );
+            }
 
-Context about our members:
+            const context = this.buildPrivacyAwareContext(specificCarData);
+            const systemPrompt = `You are SJIOC Assistant, a friendly AI helper for the Saurashtra Jaguar Independent Owners Club. 
+
+🎯 Your Role:
+- Help with car-related questions and SJIOC information
+- Be warm, engaging, and use appropriate emojis
+- Keep responses concise but helpful (2-3 sentences max)
+
+🔒 Privacy Rules:
+- NEVER share personal details like names, addresses, or phone numbers
+- Only share car information when asked about SPECIFIC car numbers (GJ-XX-XX-XXXX format)
+- For general questions, provide helpful car advice without revealing member data
+- If asked about "all members" or "list cars", politely decline and suggest asking about specific car numbers
+
+📊 Available Data Context:
 ${context}
 
-Guidelines:
-- Be friendly and helpful
-- If asked about specific members or cars, use the data provided
-- For general car knowledge or Jaguar information, provide helpful answers
-- Keep responses concise but informative
-- Use emojis appropriately to make responses engaging`;
+💬 Response Style:
+- Start with an appropriate emoji
+- Be conversational and friendly
+- Offer to help with specific car numbers if relevant`;
 
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
@@ -185,13 +192,15 @@ Guidelines:
                     'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-3.5-turbo',
+                    model: 'gpt-3.5-turbo-0125', // Use specific GPT-3.5 model for consistency
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: message }
                     ],
-                    max_tokens: 300,
-                    temperature: 0.7
+                    max_tokens: 150, // Shorter responses
+                    temperature: 0.7,
+                    presence_penalty: 0.1,
+                    frequency_penalty: 0.1
                 })
             });
 
@@ -204,8 +213,24 @@ Guidelines:
 
         } catch (error) {
             console.error('Error calling OpenAI API:', error);
-            return "I'm having trouble connecting to my AI assistant right now. Please try asking about specific member names, car numbers, or manufacturers instead.";
+            return "🔧 I'm having trouble connecting right now. Please try again in a moment, or ask about a specific car number like GJ-01-AB-1234.";
         }
+    }
+
+    buildPrivacyAwareContext(specificCarData = null) {
+        if (specificCarData) {
+            // Only provide specific car data when car number is mentioned
+            const memberStatus = specificCarData.Member === 'Y' ? 'Active Member' : 'Non-Member';
+            return `Car ${specificCarData['Car Number']}: ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']} - ${memberStatus}`;
+        }
+        
+        // General context without personal details
+        const totalMembers = this.membersData.length;
+        const activeMembers = this.membersData.filter(m => m.Member === 'Y').length;
+        const manufacturers = [...new Set(this.membersData.map(m => m['Car Manufacturer']))];
+        const carTypes = [...new Set(this.membersData.map(m => m['Car Type']))];
+        
+        return `SJIOC has ${totalMembers} registered vehicles with ${activeMembers} active members. Popular brands include ${manufacturers.slice(0, 3).join(', ')}. Car types include ${carTypes.slice(0, 4).join(', ')}.`;
     }
 
     buildContextFromData() {
