@@ -147,60 +147,15 @@ class SJIOCChatbot {
 
     async getAIResponse(message) {
         try {
-            const apiKey = process.env.OPENAI_API_KEY || window.OPENAI_API_KEY;
-            if (!apiKey) {
-                return "🤖 I'd like to help, but I need my AI connection set up. Please contact the administrator.";
-            }
-
-            // Check if asking for specific car number - provide targeted response
-            const carNumberMatch = message.match(/\b(GJ-\d{2}-[A-Z]{2}-\d{4})\b/i);
-            let specificCarData = null;
-            
-            if (carNumberMatch) {
-                const carNumber = carNumberMatch[0].toUpperCase();
-                specificCarData = this.membersData.find(member => 
-                    member['Car Number']?.toUpperCase() === carNumber
-                );
-            }
-
-            const context = this.buildPrivacyAwareContext(specificCarData);
-            const systemPrompt = `You are SJIOC Assistant, a friendly AI helper for the Saurashtra Jaguar Independent Owners Club. 
-
-🎯 Your Role:
-- Help with car-related questions and SJIOC information
-- Be warm, engaging, and use appropriate emojis
-- Keep responses concise but helpful (2-3 sentences max)
-
-🔒 Privacy Rules:
-- NEVER share personal details like names, addresses, or phone numbers
-- Only share car information when asked about SPECIFIC car numbers (GJ-XX-XX-XXXX format)
-- For general questions, provide helpful car advice without revealing member data
-- If asked about "all members" or "list cars", politely decline and suggest asking about specific car numbers
-
-📊 Available Data Context:
-${context}
-
-💬 Response Style:
-- Start with an appropriate emoji
-- Be conversational and friendly
-- Offer to help with specific car numbers if relevant`;
-
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            // Use API endpoint instead of direct OpenAI call for security
+            const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-3.5-turbo-0125', // Use specific GPT-3.5 model for consistency
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: message }
-                    ],
-                    max_tokens: 150, // Shorter responses
-                    temperature: 0.7,
-                    presence_penalty: 0.1,
-                    frequency_penalty: 0.1
+                    message: message,
+                    memberData: this.buildPrivacyAwareContext()
                 })
             });
 
@@ -209,12 +164,61 @@ ${context}
             }
 
             const data = await response.json();
-            return data.choices[0].message.content;
+            if (data.success) {
+                return data.response;
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
 
         } catch (error) {
-            console.error('Error calling OpenAI API:', error);
-            return "🔧 I'm having trouble connecting right now. Please try again in a moment, or ask about a specific car number like GJ-01-AB-1234.";
+            console.error('Error calling AI API:', error);
+            
+            // Fallback to local responses for common queries
+            return this.getLocalFallbackResponse(message);
         }
+    }
+
+    getLocalFallbackResponse(message) {
+        const lowerMessage = message.toLowerCase();
+        
+        // Check for specific car number
+        const carNumberMatch = message.match(/\b(GJ-\d{2}-[A-Z]{2}-\d{4})\b/i);
+        if (carNumberMatch) {
+            const carNumber = carNumberMatch[0].toUpperCase();
+            const specificCarData = this.membersData.find(member => 
+                member['Car Number']?.toUpperCase() === carNumber
+            );
+            
+            if (specificCarData) {
+                const memberStatus = specificCarData.Member === 'Y' ? 'Active Member' : 'Non-Member';
+                return `🚗 **${carNumber}**\n\n${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']}\n${memberStatus}\n\n*Ask me about car maintenance or other automotive topics!*`;
+            } else {
+                return `🔍 I don't have information about car number ${carNumber} in our database. Please check the number and try again.`;
+            }
+        }
+        
+        // Common greetings
+        if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+            return "👋 Hello! I'm your SJIOC Car Assistant. I can help with car-related questions or look up specific car numbers like GJ-01-AB-1234. What would you like to know?";
+        }
+        
+        // Help requests
+        if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
+            return "🤖 I can help you with:\n\n🔍 Look up specific car numbers (format: GJ-XX-XX-XXXX)\n🚗 Answer car maintenance questions\n🏢 Provide SJIOC information\n\nTry asking: 'Tell me about GJ-01-AB-1234' or 'What oil is best for Jaguar engines?'";
+        }
+        
+        // Car maintenance questions
+        if (lowerMessage.includes('maintenance') || lowerMessage.includes('oil') || lowerMessage.includes('service')) {
+            return "🔧 For car maintenance questions, I'd recommend consulting your owner's manual or a qualified mechanic. Each vehicle has specific requirements based on the make, model, and year.\n\nIf you have a specific car number, I can look up that vehicle's details!";
+        }
+        
+        // Privacy protection - block general member requests
+        if (lowerMessage.includes('all members') || lowerMessage.includes('list members') || lowerMessage.includes('show all')) {
+            return "🔒 I protect member privacy and don't share general member lists. However, I can help with specific car numbers!\n\nTry: 'Tell me about GJ-01-AB-1234'";
+        }
+        
+        // Default response
+        return "🤖 I'm here to help with SJIOC car information! For the best experience, ask about:\n\n🚗 Specific car numbers (GJ-XX-XX-XXXX format)\n🔧 Car maintenance topics\n❓ General automotive questions\n\n*My AI features are temporarily unavailable, but I can still help with car lookups!*";
     }
 
     buildPrivacyAwareContext(specificCarData = null) {
