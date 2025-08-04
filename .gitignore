@@ -42,3 +42,6 @@ logs
 test-*.js
 *-test.js
 test-scenarios.md
+
+# Build output
+public/
