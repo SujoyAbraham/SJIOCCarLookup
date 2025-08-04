@@ -43,5 +43,5 @@ test-*.js
 *-test.js
 test-scenarios.md
 
-# Build output
-public/
+# Build output (keep public/ for Vercel)
+# public/

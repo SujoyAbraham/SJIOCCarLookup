@@ -5,7 +5,7 @@
   "main": "index.html",
   "scripts": {
     "dev": "vercel dev",
-    "build": "cp *.html *.css *.js *.json *.csv public/ 2>/dev/null || true",
+    "build": "mkdir -p public && cp index.html styles.css script.js members_data.json members_data.csv public/ && ls -la public/",
     "start": "vercel dev"
   },
   "dependencies": {
