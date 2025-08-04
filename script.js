@@ -147,6 +147,17 @@ class SJIOCChatbot {
 
     async getAIResponse(message) {
         try {
+            // Check if asking for specific car number - provide targeted response
+            const carNumberMatch = message.match(/\b(GJ-\d{2}-[A-Z]{2}-\d{4})\b/i);
+            let specificCarData = null;
+            
+            if (carNumberMatch) {
+                const carNumber = carNumberMatch[0].toUpperCase();
+                specificCarData = this.membersData.find(member => 
+                    member['Car Number']?.toUpperCase() === carNumber
+                );
+            }
+
             // Use API endpoint instead of direct OpenAI call for security
             const response = await fetch('/api/chat', {
                 method: 'POST',
@@ -155,7 +166,7 @@ class SJIOCChatbot {
                 },
                 body: JSON.stringify({
                     message: message,
-                    memberData: this.buildPrivacyAwareContext()
+                    memberData: this.buildPrivacyAwareContext(specificCarData)
                 })
             });
 
@@ -191,7 +202,14 @@ class SJIOCChatbot {
             
             if (specificCarData) {
                 const memberStatus = specificCarData.Member === 'Y' ? 'Active Member' : 'Non-Member';
-                return `🚗 **${carNumber}**\n\n${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']}\n${memberStatus}\n\n*Ask me about car maintenance or other automotive topics!*`;
+                
+                // Privacy protection: Show only first 2 characters of names
+                const firstName = specificCarData['First Name'] || '';
+                const lastName = specificCarData['Last Name'] || '';
+                const maskedFirstName = firstName.length >= 2 ? firstName.substring(0, 2) + '*'.repeat(Math.max(0, firstName.length - 2)) : firstName;
+                const maskedLastName = lastName.length >= 2 ? lastName.substring(0, 2) + '*'.repeat(Math.max(0, lastName.length - 2)) : lastName;
+                
+                return `🚗 **${carNumber}**\n\n👤 **Owner:** ${maskedFirstName} ${maskedLastName}\n🚙 **Vehicle:** ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']}\n📋 **Status:** ${memberStatus}\n\n*Ask me about car maintenance or other automotive topics!*`;
             } else {
                 return `🔍 I don't have information about car number ${carNumber} in our database. Please check the number and try again.`;
             }
@@ -223,9 +241,16 @@ class SJIOCChatbot {
 
     buildPrivacyAwareContext(specificCarData = null) {
         if (specificCarData) {
-            // Only provide specific car data when car number is mentioned
+            // Only provide specific car data when car number is mentioned with masked names
             const memberStatus = specificCarData.Member === 'Y' ? 'Active Member' : 'Non-Member';
-            return `Car ${specificCarData['Car Number']}: ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']} - ${memberStatus}`;
+            
+            // Privacy protection: Show only first 2 characters of names
+            const firstName = specificCarData['First Name'] || '';
+            const lastName = specificCarData['Last Name'] || '';
+            const maskedFirstName = firstName.length >= 2 ? firstName.substring(0, 2) + '*'.repeat(Math.max(0, firstName.length - 2)) : firstName;
+            const maskedLastName = lastName.length >= 2 ? lastName.substring(0, 2) + '*'.repeat(Math.max(0, lastName.length - 2)) : lastName;
+            
+            return `Car ${specificCarData['Car Number']}: Owner ${maskedFirstName} ${maskedLastName}, ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']} - ${memberStatus}`;
         }
         
         // General context without personal details
