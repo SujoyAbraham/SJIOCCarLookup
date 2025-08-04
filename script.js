@@ -199,7 +199,7 @@ class SJIOCChatbot {
     getLocalFallbackResponse(message) {
         const lowerMessage = message.toLowerCase();
         
-        // Check for specific car number
+        // ONLY respond to specific car number queries - privacy protection
         const carNumberMatch = message.match(/\b(GJ-\d{2}-[A-Z]{2}-\d{4})\b/i);
         if (carNumberMatch) {
             const carNumber = carNumberMatch[0].toUpperCase();
@@ -219,6 +219,11 @@ class SJIOCChatbot {
             } else {
                 return `🔍 I don't have information about car number ${carNumber} in our database. Please check the number and try again.`;
             }
+        }
+        
+        // Block all manufacturer/brand queries for privacy
+        if (lowerMessage.includes('jaguar') || lowerMessage.includes('bmw') || lowerMessage.includes('audi') || lowerMessage.includes('mercedes') || lowerMessage.includes('all cars') || lowerMessage.includes('list cars')) {
+            return "🔒 **Privacy Protection**\n\nI don't share lists of cars or owners by manufacturer for privacy reasons.\n\nIf you need to identify a specific car owner, please provide the exact car number in this format: **GJ-01-AB-1234**\n\nThis helps protect our church member privacy.";
         }
         
         // Common greetings
