@@ -202,12 +202,16 @@ When admin uploads new data, the system **simultaneously updates**:
 - Fallback: `public/members_data.csv` for offline development
 - All files stay synchronized via upload process
 
+**Vercel Production:**
+- Uses `/api/members` endpoint → reads from deployed `members_data.json`
+- ⚠️ **Upload limitation**: Cannot write to filesystem in serverless environment
+- Requires database integration for dynamic data updates
+
 #### ⚡ Real-Time Features
-- **Instant Availability**: Uploaded data immediately accessible
-- **No Manual Sync**: Eliminates need for manual file copying
-- **Atomic Updates**: All files updated together or none at all
-- **Backup Protection**: Automatic timestamped backups before changes
+- **Local Development**: Instant data updates with file synchronization
+- **Production Validation**: CSV format and structure validation
 - **Error Recovery**: Failed uploads don't corrupt existing data
+- **⚠️ Production Limitation**: Vercel serverless cannot persist file changes
 
 #### 🔧 Data Loading Priority
 ```javascript
@@ -219,6 +223,8 @@ When admin uploads new data, the system **simultaneously updates**:
 ## 🎨 Customization
 
 ### Updating Member Data (Admin)
+
+#### 🏠 Local Development
 1. **Login**: Use `/admin <password>` in chat interface
 2. **Upload**: Use `/upload` command to open file selection dialog
 3. **Validate**: Select CSV file - system validates format and structure
@@ -232,6 +238,38 @@ When admin uploads new data, the system **simultaneously updates**:
      - `public/members_data.json` (local dev)
      - `public/members_data.csv` (local dev)
    - Reloads data in real-time for immediate availability
+
+#### ☁️ Vercel Production Deployment
+
+**⚠️ Important Limitation**: Vercel serverless functions run in a **read-only filesystem** environment. File uploads can validate data but cannot persist changes.
+
+**Current Behavior in Production:**
+- ✅ CSV validation and format checking works
+- ❌ File writing and data persistence fails
+- 💡 Returns validation results with database integration recommendations
+
+**🛠️ Production Solutions:**
+
+1. **Database Integration** (Recommended):
+   ```javascript
+   // Example: MongoDB Atlas integration
+   import { MongoClient } from 'mongodb';
+   const client = new MongoClient(process.env.MONGODB_URI);
+   await client.db('sjioc').collection('members').replaceMany({}, jsonData);
+   ```
+
+2. **External Storage Options**:
+   - **MongoDB Atlas** (Document database)
+   - **PlanetScale** (MySQL serverless)
+   - **Supabase** (PostgreSQL with real-time)
+   - **Vercel KV** (Redis-compatible)
+   - **Vercel Postgres** (SQL database)
+
+3. **Manual Update Process**:
+   - Use `/upload` to validate CSV format
+   - Download validated data from response
+   - Manually update repository files
+   - Redeploy to Vercel
 
 ### Styling Changes
 - Modify `styles.css` for visual customization
@@ -373,11 +411,24 @@ For security concerns or questions:
 ## 🐛 Troubleshooting
 
 ### Common Issues
+
+#### Local Development
 1. **Chatbot not responding**: Check if JSON/CSV data files exist
 2. **Admin login fails**: Verify password in environment variables
 3. **File upload errors**: Ensure CSV format matches requirements
 4. **AI not working**: Verify OpenAI API key is correctly set
-5. **Deployment issues**: Check Vercel environment variables
+
+#### Vercel Production Deployment
+5. **Upload fails with "read-only filesystem"**: 
+   - **Expected behavior** - Vercel serverless functions cannot write files
+   - **Solution**: Implement database integration (see customization section)
+   - **Workaround**: Use validation response to manually update files
+
+6. **Data not updating after upload**:
+   - **Cause**: Filesystem writes fail in serverless environment
+   - **Solution**: Deploy with database backend or manually update repository
+
+7. **Environment variables missing**: Check Vercel dashboard settings
 
 ### Debug Steps
 - Check browser console for JavaScript errors

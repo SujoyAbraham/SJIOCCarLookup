@@ -126,42 +126,19 @@ export default function handler(req, res) {
         validateCSVStructure(csvContent);
         const jsonData = csvToJson(csvContent);
         
-        // Create backup of current data
-        const backupPath = path.join(process.cwd(), `members_data_backup_${Date.now()}.json`);
-        const currentDataPath = path.join(process.cwd(), 'members_data.json');
+        // Note: Vercel serverless functions run in read-only filesystem
+        // File system operations will fail in production deployment
+        // This function validates data but cannot persist changes
         
-        if (fs.existsSync(currentDataPath)) {
-          fs.copyFileSync(currentDataPath, backupPath);
-        }
-        
-        // Write new data
-        fs.writeFileSync(currentDataPath, JSON.stringify(jsonData, null, 2));
-        
-        // Also update CSV file
-        const csvPath = path.join(process.cwd(), 'members_data.csv');
-        fs.writeFileSync(csvPath, csvContent);
-        
-        // Update public folder files for local development consistency
-        const publicJsonPath = path.join(process.cwd(), 'public', 'members_data.json');
-        const publicCsvPath = path.join(process.cwd(), 'public', 'members_data.csv');
-        
-        // Ensure public directory exists
-        const publicDir = path.join(process.cwd(), 'public');
-        if (!fs.existsSync(publicDir)) {
-          fs.mkdirSync(publicDir, { recursive: true });
-        }
-        
-        // Write to public folder
-        fs.writeFileSync(publicJsonPath, JSON.stringify(jsonData, null, 2));
-        fs.writeFileSync(publicCsvPath, csvContent);
-        
-        console.log(`Admin uploaded new member data: ${jsonData.length} records - updated all data files`);
+        console.log(`Admin validated new member data: ${jsonData.length} records`);
         
         res.status(200).json({ 
           success: true, 
-          message: `Successfully updated member data with ${jsonData.length} records. All data files synchronized.`,
+          message: `CSV validation successful! ${jsonData.length} records validated. Note: Data persistence requires database integration in Vercel deployment.`,
           recordCount: jsonData.length,
-          filesUpdated: ['members_data.json', 'members_data.csv', 'public/members_data.json', 'public/members_data.csv']
+          validatedData: jsonData,
+          warning: "Vercel serverless functions cannot write to filesystem. Consider using a database (MongoDB Atlas, PlanetScale, Supabase) for persistent data storage.",
+          recommendation: "For production use, integrate with a cloud database to enable data updates."
         });
         
       } catch (validationError) {
