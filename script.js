@@ -4,6 +4,8 @@ class SJIOCChatbot {
         this.isAdminMode = false;
         this.adminAuthenticated = false;
         this.pendingUpload = null;
+        
+        // Get DOM elements with error checking
         this.chatbotToggle = document.getElementById('chatbotToggle');
         this.chatbotPopup = document.getElementById('chatbotPopup');
         this.chatbotClose = document.getElementById('chatbotClose');
@@ -11,23 +13,42 @@ class SJIOCChatbot {
         this.chatbotSend = document.getElementById('chatbotSend');
         this.chatbotMessages = document.getElementById('chatbotMessages');
         
+        // Check if required elements exist
+        if (!this.chatbotToggle || !this.chatbotPopup) {
+            console.error('SJIOC Chatbot: Required elements not found!');
+            return;
+        }
+        
         this.initializeEventListeners();
         this.loadMemberData();
     }
 
     initializeEventListeners() {
-        this.chatbotToggle.addEventListener('click', () => this.toggleChatbot());
-        this.chatbotClose.addEventListener('click', () => this.closeChatbot());
-        this.chatbotSend.addEventListener('click', () => this.sendMessage());
-        this.chatbotInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.sendMessage();
-        });
+        if (this.chatbotToggle) {
+            this.chatbotToggle.addEventListener('click', () => this.toggleChatbot());
+        }
+        
+        if (this.chatbotClose) {
+            this.chatbotClose.addEventListener('click', () => this.closeChatbot());
+        }
+        
+        if (this.chatbotSend) {
+            this.chatbotSend.addEventListener('click', () => this.sendMessage());
+        }
+        
+        if (this.chatbotInput) {
+            this.chatbotInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.sendMessage();
+            });
+        }
     }
 
     toggleChatbot() {
         this.chatbotPopup.classList.toggle('active');
         if (this.chatbotPopup.classList.contains('active')) {
-            this.chatbotInput.focus();
+            if (this.chatbotInput) {
+                this.chatbotInput.focus();
+            }
         }
     }
 
