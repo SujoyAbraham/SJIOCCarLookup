@@ -141,12 +141,27 @@ export default function handler(req, res) {
         const csvPath = path.join(process.cwd(), 'members_data.csv');
         fs.writeFileSync(csvPath, csvContent);
         
-        console.log(`Admin uploaded new member data: ${jsonData.length} records`);
+        // Update public folder files for local development consistency
+        const publicJsonPath = path.join(process.cwd(), 'public', 'members_data.json');
+        const publicCsvPath = path.join(process.cwd(), 'public', 'members_data.csv');
+        
+        // Ensure public directory exists
+        const publicDir = path.join(process.cwd(), 'public');
+        if (!fs.existsSync(publicDir)) {
+          fs.mkdirSync(publicDir, { recursive: true });
+        }
+        
+        // Write to public folder
+        fs.writeFileSync(publicJsonPath, JSON.stringify(jsonData, null, 2));
+        fs.writeFileSync(publicCsvPath, csvContent);
+        
+        console.log(`Admin uploaded new member data: ${jsonData.length} records - updated all data files`);
         
         res.status(200).json({ 
           success: true, 
-          message: `Successfully updated member data with ${jsonData.length} records`,
-          recordCount: jsonData.length
+          message: `Successfully updated member data with ${jsonData.length} records. All data files synchronized.`,
+          recordCount: jsonData.length,
+          filesUpdated: ['members_data.json', 'members_data.csv', 'public/members_data.json', 'public/members_data.csv']
         });
         
       } catch (validationError) {

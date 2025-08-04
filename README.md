@@ -17,6 +17,7 @@ A secure, AI-powered car identification system for **St. John's Indian Orthodox 
 - **Password Protection**: Secure authentication system
 - **File Upload Management**: CSV file upload with validation
 - **Automatic Backups**: Data protection before updates
+- **Real-Time Sync**: All data files updated simultaneously across environments
 - **Session Security**: Admin sessions don't persist across refreshes
 - **Audit Logging**: All admin actions are logged for security
 
@@ -24,6 +25,7 @@ A secure, AI-powered car identification system for **St. John's Indian Orthodox 
 - **Vercel Optimized**: Serverless deployment ready
 - **JSON Database**: Fast, file-based data storage
 - **API Endpoints**: RESTful backend functions
+- **Real-Time Data Sync**: Automatic synchronization across all environments
 - **CORS Configured**: Secure cross-origin access
 - **Environment Variables**: Secure configuration management
 
@@ -43,12 +45,16 @@ SJIOCCarLookup/
 ├── api/                    # Vercel serverless functions
 │   ├── members.js         # Member data API endpoint
 │   ├── admin-auth.js      # Admin authentication API
-│   └── admin-upload.js    # Secure file upload handler
+│   ├── admin-upload.js    # Secure file upload with real-time sync
+│   └── chat.js            # AI chat API endpoint
 ├── index.html             # Main application interface
 ├── script.js              # Chatbot logic with admin commands
 ├── styles.css             # UI styling and animations
 ├── members_data.json      # Member database (JSON format)
 ├── members_data.csv       # Member database (CSV backup)
+├── public/                # Static assets and local dev fallbacks
+│   ├── members_data.json  # Synced JSON data for local development
+│   └── members_data.csv   # Synced CSV data for local development
 ├── vercel.json           # Vercel deployment configuration
 ├── package.json          # Dependencies and scripts
 ├── .env.example          # Environment variables template
@@ -164,13 +170,68 @@ const hash = crypto.createHash('sha256').update(password + salt).digest('hex');
 console.log('Set ADMIN_PASSWORD_HASH to:', hash);
 ```
 
+## 🔄 Data Synchronization System
+
+### Real-Time Multi-Environment Sync
+The system maintains **complete data consistency** across all environments:
+
+#### 📊 Data Flow Architecture
+```
+Admin Upload → Validation → Backup Creation → Multi-File Update → Real-Time Reload
+     ↓              ↓              ↓                ↓                ↓
+  CSV File    Format Check    Timestamp Backup   4 Files Updated   Live Data
+```
+
+#### 📁 File Synchronization Process
+When admin uploads new data, the system **simultaneously updates**:
+
+1. **`members_data.json`** (Root) - Primary API data source
+2. **`members_data.csv`** (Root) - Source backup for version control
+3. **`public/members_data.json`** - Local development fallback
+4. **`public/members_data.csv`** - Local development backup
+
+#### 🌐 Environment-Specific Behavior
+
+**Production (Vercel Deployment):**
+- Uses `/api/members` endpoint → reads from root `members_data.json`
+- Real-time updates via serverless functions
+- Automatic backup creation with timestamps
+
+**Local Development:**
+- Primary: `/api/members` endpoint (if available)
+- Fallback: `public/members_data.csv` for offline development
+- All files stay synchronized via upload process
+
+#### ⚡ Real-Time Features
+- **Instant Availability**: Uploaded data immediately accessible
+- **No Manual Sync**: Eliminates need for manual file copying
+- **Atomic Updates**: All files updated together or none at all
+- **Backup Protection**: Automatic timestamped backups before changes
+- **Error Recovery**: Failed uploads don't corrupt existing data
+
+#### 🔧 Data Loading Priority
+```javascript
+1. Primary: /api/members (JSON API endpoint)
+2. Fallback: public/members_data.csv (Local development)
+3. Error: Display user-friendly error message
+```
+
 ## 🎨 Customization
 
 ### Updating Member Data (Admin)
-1. Login with `/admin <password>`
-2. Use `/upload` command in chat
-3. Select CSV file following required format
-4. System automatically validates and updates data
+1. **Login**: Use `/admin <password>` in chat interface
+2. **Upload**: Use `/upload` command to open file selection dialog
+3. **Validate**: Select CSV file - system validates format and structure
+4. **Confirm**: Check the confirmation box to proceed with upload
+5. **Sync**: System automatically:
+   - Creates backup of current data
+   - Validates CSV structure and car number formats
+   - Updates all data files simultaneously:
+     - `members_data.json` (API source)
+     - `members_data.csv` (backup)
+     - `public/members_data.json` (local dev)
+     - `public/members_data.csv` (local dev)
+   - Reloads data in real-time for immediate availability
 
 ### Styling Changes
 - Modify `styles.css` for visual customization
