@@ -1,16 +1,16 @@
-# 🚗 SJIOC Car Lookup Chatbot
+# 🏛️ SJIOC Car Identification Assistant
 
-A secure, AI-powered chatbot for the **Surat Jaguar Independent Owners Club (SJIOC)** website that helps users search through member car information using natural language queries with integrated admin functionality.
+A secure, AI-powered car identification system for **St. John's Indian Orthodox Church (SJIOC)** that helps members and visitors identify vehicle owners using registration number lookups with comprehensive privacy protection.
 
 ## ✨ Features
 
-### 🤖 Smart Chatbot Interface
+### 🤖 Smart Car Identification Interface
 - **Modern Popup Design**: Smooth animations and responsive layout
-- **AI Integration**: ChatGPT-powered responses for complex queries
-- **Natural Language Processing**: Understands various query formats
-- **Multi-Search Options**: Search by name, car number, manufacturer
-- **Real-time Responses**: Instant member and car information
-- **Fallback Intelligence**: Local search + AI backup for comprehensive answers
+- **AI Integration**: ChatGPT-powered responses for natural language queries
+- **Vehicle Owner Lookup**: Identify car owners by registration number
+- **Privacy-First Design**: Shows only necessary information with name masking
+- **Real-time Responses**: Instant car owner identification
+- **Church-Safe Environment**: Appropriate for religious organization use
 
 ### 🔐 Secure Admin Panel (In-Chat)
 - **Command-Based Interface**: MCP-style admin commands (`/admin`, `/upload`, `/stats`)
@@ -119,7 +119,7 @@ vercel --prod
 - "What can you do?"
 
 ### Admin Commands (Secure Access)
-- `/admin sjioc-admin-2024` - Login to admin mode
+- `/admin <password>` - Login to admin mode
 - `/stats` - View database statistics
 - `/upload` - Upload new member CSV file  
 - `/help-admin` - Show admin command reference
@@ -210,23 +210,104 @@ The chatbot uses keyword matching and pattern recognition to understand user que
 - ✅ Safari 12+
 - ✅ Edge 79+
 
-## 🛡️ Security Features
+## 🛡️ Comprehensive Security Features
 
-### Church/Organization Security
-- **Password Protection**: Hashed admin passwords with salt
-- **File Validation**: CSV format and content validation  
-- **Automatic Backups**: Data protection before updates
-- **Session Management**: Admin sessions don't persist
-- **Audit Logging**: All admin actions logged
-- **Size Limits**: File upload restrictions (5MB max)
-- **CORS Protection**: Secure cross-origin requests
+### 🔐 Authentication & Access Control
+- **Multi-Layer Admin Authentication**: Password-based with SHA256 hashing + custom salt
+- **Session Security**: Admin sessions don't persist across browser refreshes
+- **Role-Based Access**: Clear separation between user and admin functionality
+- **Rate Limiting**: Built-in delays to prevent brute force attacks
+- **Environment Variable Protection**: Sensitive data stored securely
 
-### Best Practices
-- Use strong, unique admin passwords
-- Regularly backup member data
-- Monitor admin access logs  
-- Keep API keys secure in environment variables
-- Restrict admin access to trusted personnel only
+### 🔒 Data Privacy Protection
+- **Name Masking Algorithm**: 
+  - **First Names**: Displayed in full (for friendliness)
+  - **Last Names**: Only first 2 characters + asterisks (Jo****)
+  - **Example**: "John Smith" → "John Sm***"
+- **No Personal Data Exposure**: Never shows addresses, phone numbers, emails
+- **Privacy-First Design**: Built specifically for church/religious organization use
+- **Query Restriction**: Blocks bulk data requests and member listings
+
+### 🛡️ Application Security
+- **Input Validation**: All user inputs sanitized and validated
+- **XSS Prevention**: Proper escaping of user-generated content  
+- **SQL Injection Protection**: No direct database queries (file-based system)
+- **File Upload Security**:
+  - CSV format validation
+  - File size limits (5MB maximum)
+  - Content structure verification
+  - Virus scanning ready (extensible)
+- **CORS Configuration**: Properly configured cross-origin requests
+
+### 🔐 API Security
+- **Server-Side API Key Management**: OpenAI keys never exposed to client
+- **Request Authentication**: All admin API calls require authentication
+- **Error Handling**: No sensitive information leaked in error messages
+- **Timeout Protection**: API calls have reasonable timeout limits
+- **Response Sanitization**: All AI responses filtered for safety
+
+### 📊 Audit & Monitoring
+- **Admin Action Logging**: All administrative actions logged with timestamps
+- **Failed Login Attempts**: Monitoring and logging of authentication failures
+- **File Upload Tracking**: Complete audit trail of data updates
+- **Error Logging**: Comprehensive error tracking for security monitoring
+- **Usage Analytics**: Track patterns without compromising privacy
+
+### 🚧 Infrastructure Security
+- **Vercel Platform Security**: Deployed on secure, enterprise-grade platform
+- **HTTPS Enforcement**: All communications encrypted in transit
+- **Environment Isolation**: Production/development environment separation
+- **Automated Backups**: System creates backups before any data updates
+- **CDN Protection**: Static assets served through secure CDN
+
+### 🏛️ Church-Specific Security Considerations
+- **Member Privacy**: Designed with religious organization privacy standards
+- **Contact Protection**: Directs inquiries through proper church channels
+- **Data Minimization**: Only stores and displays essential vehicle information
+- **Community Safety**: Prevents misuse for stalking or harassment
+- **Leadership Oversight**: Admin access designed for church trustees/leadership
+
+### 🔑 Security Best Practices for Administrators
+
+#### Password Management:
+- Use strong, unique passwords (minimum 12 characters)
+- Include uppercase, lowercase, numbers, and special characters
+- Change passwords regularly (every 90 days recommended)
+- Never share admin credentials
+
+#### Environment Security:
+- Keep API keys in environment variables only
+- Regular security updates and monitoring
+- Restrict admin access to authorized personnel only
+- Use secure networks for administrative tasks
+
+#### Data Handling:
+- Regular backup verification
+- Monitor for unusual access patterns
+- Validate CSV files before upload
+- Keep member data up to date and accurate
+
+### 🚨 Security Incident Response
+If you suspect a security issue:
+1. **Immediately contact** church leadership/trustees
+2. **Document** the incident with timestamps
+3. **Preserve logs** for investigation
+4. **Change passwords** if compromise suspected
+5. **Review access logs** for unauthorized activity
+
+### 🔍 Security Compliance
+- **Privacy by Design**: Built with privacy as core principle
+- **Data Minimization**: Only collect and display necessary information
+- **Consent-Based**: Only shows data user specifically requests
+- **Audit Ready**: Complete logging for security reviews
+- **Church Standards**: Meets religious organization privacy expectations
+
+### 📞 Security Support
+For security concerns or questions:
+- Contact church trustees or system administrator
+- Review logs in Vercel dashboard (admin access required)
+- Follow incident response procedures
+- Regular security reviews recommended quarterly
 
 ## 🐛 Troubleshooting
 
@@ -280,5 +361,15 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
-**Made with ❤️ for the Surat Jaguar Independent Owners Club**  
-*Secure • AI-Powered • Church-Ready*
+**Made with ❤️ for St. John's Indian Orthodox Church (SJIOC), Drexel Hill, PA**  
+*Secure • AI-Powered • Privacy-First • Church-Ready*
+
+## 🏛️ About SJIOC
+
+St. John's Indian Orthodox Church serves the Indian Orthodox community in Drexel Hill, Pennsylvania. This car identification system helps our church community identify vehicle owners in a secure, privacy-respecting manner during church events and gatherings.
+
+**Church Values Reflected in Design:**
+- 🙏 **Community Care**: Helping members connect respectfully
+- 🔒 **Privacy Protection**: Safeguarding personal information
+- 🤝 **Mutual Respect**: Facilitating polite inquiries through proper channels
+- 💒 **Church Leadership**: Admin oversight by trustees and leadership

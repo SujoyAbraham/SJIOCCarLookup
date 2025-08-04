@@ -216,17 +216,17 @@ class SJIOCChatbot {
         
         // Common greetings
         if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
-            return "👋 Welcome to SJIOC! I'm your car assistant. I can help with specific car lookups using registration numbers (GJ-XX-XX-XXXX format) or answer general automotive questions. What would you like to know?";
+            return "👋 Welcome to SJIOC! I'm your car identification assistant. I can help you find out whose car belongs to which registration number. Just provide the number in GJ-XX-XX-XXXX format. What would you like to know?";
         }
         
         // Help requests
         if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
-            return "🤖 I can help you with:\n• 🔍 Car details by registration number (GJ-XX-XX-XXXX)\n• 🔧 General automotive advice and maintenance tips\n• 📊 SJIOC club statistics and information\n• 🚗 Car manufacturer and type information\n\nJust ask naturally - I'll understand!";
+            return "🤖 I can help you with:\n• 🔍 Car owner identification by registration number (GJ-XX-XX-XXXX)\n• 📊 SJIOC church statistics and information\n• 🚗 Car manufacturer and type information\n• 🏛️ General church member car information\n\nJust ask naturally - I'll understand!";
         }
         
-        // Car maintenance questions
+        // Car maintenance questions - redirect to car owner lookup
         if (lowerMessage.includes('maintenance') || lowerMessage.includes('oil') || lowerMessage.includes('service')) {
-            return "🔧 For car maintenance questions, I'd recommend consulting your owner's manual or a qualified mechanic. Each vehicle has specific requirements based on the make, model, and year.\n\nIf you have a specific car number, I can look up that vehicle's details!";
+            return "🚗 I'm here to help identify car owners, not provide maintenance advice. If you have a specific car number (GJ-XX-XX-XXXX format), I can tell you whose car it is!";
         }
         
         // Privacy protection - block general member requests
@@ -235,7 +235,7 @@ class SJIOCChatbot {
         }
         
         // Default response
-        return "🤖 I'm here to help with SJIOC car information! For the best experience, ask about:\n\n🚗 Specific car numbers (GJ-XX-XX-XXXX format)\n🔧 Car maintenance topics\n❓ General automotive questions\n\n*My AI features are temporarily unavailable, but I can still help with car lookups!*";
+        return "🤖 I'm here to help identify car owners at SJIOC! For the best experience, ask about:\n\n🚗 Specific car numbers (GJ-XX-XX-XXXX format)\n📊 Church member statistics\n❓ Car owner identification\n\n*My AI features are temporarily unavailable, but I can still help with car lookups!*";
     }
 
     buildPrivacyAwareContext(specificCarData = null) {
