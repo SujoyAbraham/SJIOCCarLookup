@@ -175,30 +175,38 @@ class SJIOCChatbot {
 
     async getAIResponse(message) {
         try {
-            // Check if asking for specific car number - smart recognition with flexible formatting
-            const carNumberMatch = message.match(/\b([A-Z0-9\s-]{4,12})\b/i);
+            // Enhanced car number detection - handles all formats including spaces, symbols
+            const carNumberMatch = message.match(/\b([A-Z0-9\s\-]+)\b/gi);
             let specificCarData = null;
             
             if (carNumberMatch) {
-                const inputPlate = carNumberMatch[0].toUpperCase().trim();
-                
-                // Normalize input by removing all spaces and special characters for comparison
-                const normalizeForComparison = (plate) => plate.replace(/[^A-Z0-9]/g, '');
-                const normalizedInput = normalizeForComparison(inputPlate);
-                
-                // Only proceed if we have a reasonable length plate (4-8 alphanumeric characters)
-                if (normalizedInput.length >= 4 && normalizedInput.length <= 8) {
-                    // Smart plate matching - try exact match first, then fuzzy match
-                    specificCarData = this.membersData.find(member => 
-                        member['Car Number']?.toUpperCase() === inputPlate
-                    );
+                // Try all potential matches from the message
+                for (const match of carNumberMatch) {
+                    const inputPlate = match.toUpperCase().trim();
                     
-                    // If no exact match, try matching normalized versions
-                    if (!specificCarData) {
-                        specificCarData = this.membersData.find(member => {
-                            const plateWithoutSymbols = normalizeForComparison(member['Car Number'] || '');
-                            return plateWithoutSymbols === normalizedInput;
-                        });
+                    // Normalize input by removing all spaces and special characters for comparison
+                    const normalizeForComparison = (plate) => plate.replace(/[^A-Z0-9]/g, '');
+                    const normalizedInput = normalizeForComparison(inputPlate);
+                    
+                    // Only proceed if we have a reasonable length plate (3-10 alphanumeric characters for all plate types including government/municipal)
+                    if (normalizedInput.length >= 3 && normalizedInput.length <= 10) {
+                        // Smart plate matching - try exact match first
+                        specificCarData = this.membersData.find(member => 
+                            member['Car Number']?.toUpperCase() === inputPlate
+                        );
+                        
+                        // If no exact match, try matching normalized versions (remove all symbols/spaces)
+                        if (!specificCarData) {
+                            specificCarData = this.membersData.find(member => {
+                                const plateWithoutSymbols = normalizeForComparison(member['Car Number'] || '');
+                                return plateWithoutSymbols === normalizedInput;
+                            });
+                        }
+                        
+                        // If found a match, break out of the loop
+                        if (specificCarData) {
+                            break;
+                        }
                     }
                 }
             }
@@ -237,47 +245,51 @@ class SJIOCChatbot {
     getLocalFallbackResponse(message) {
         const lowerMessage = message.toLowerCase();
         
-        // ONLY respond to specific car number queries - smart recognition with flexible formatting
-        const carNumberMatch = message.match(/\b([A-Z0-9\s-]{4,12})\b/i);
+        // Enhanced car number detection - handles all formats including spaces, symbols
+        const carNumberMatch = message.match(/\b([A-Z0-9\s\-]+)\b/gi);
         if (carNumberMatch) {
-            const inputPlate = carNumberMatch[0].toUpperCase().trim();
-            
-            // Normalize input by removing all spaces and special characters for comparison
-            const normalizeForComparison = (plate) => plate.replace(/[^A-Z0-9]/g, '');
-            const normalizedInput = normalizeForComparison(inputPlate);
-            
-            // Only proceed if we have a reasonable length plate (4-8 alphanumeric characters)
-            if (normalizedInput.length >= 4 && normalizedInput.length <= 8) {
-                // Smart plate matching - try exact match first, then fuzzy match
-                let specificCarData = this.membersData.find(member => 
-                    member['Car Number']?.toUpperCase() === inputPlate
-                );
+            // Try all potential matches from the message
+            for (const match of carNumberMatch) {
+                const inputPlate = match.toUpperCase().trim();
                 
-                // If no exact match, try matching normalized versions
-                if (!specificCarData) {
-                    specificCarData = this.membersData.find(member => {
-                        const plateWithoutSymbols = normalizeForComparison(member['Car Number'] || '');
-                        return plateWithoutSymbols === normalizedInput;
-                    });
+                // Normalize input by removing all spaces and special characters for comparison
+                const normalizeForComparison = (plate) => plate.replace(/[^A-Z0-9]/g, '');
+                const normalizedInput = normalizeForComparison(inputPlate);
+                
+                // Only proceed if we have a reasonable length plate (3-10 alphanumeric characters for all plate types including government/municipal)
+                if (normalizedInput.length >= 3 && normalizedInput.length <= 10) {
+                    // Smart plate matching - try exact match first
+                    let specificCarData = this.membersData.find(member => 
+                        member['Car Number']?.toUpperCase() === inputPlate
+                    );
+                    
+                    // If no exact match, try matching normalized versions (remove all symbols/spaces)
+                    if (!specificCarData) {
+                        specificCarData = this.membersData.find(member => {
+                            const plateWithoutSymbols = normalizeForComparison(member['Car Number'] || '');
+                            return plateWithoutSymbols === normalizedInput;
+                        });
+                    }
+                    
+                    if (specificCarData) {
+                        const displayPlate = specificCarData['Car Number'];
+                        const memberStatus = specificCarData.Member === 'Y' ? 'Active Member' : 'Non-Member';
+                        
+                        // Privacy protection: Show full first name + masked last name (first 2 chars + asterisks)
+                        const firstName = specificCarData['First Name'] || '';
+                        const lastName = specificCarData['Last Name'] || '';
+                        const maskedLastName = lastName.length >= 2 ? lastName.substring(0, 2) + '*'.repeat(Math.max(0, lastName.length - 2)) : lastName;
+                        
+                        return `🚗 **${displayPlate}**\n\n👤 **Owner:** ${firstName} ${maskedLastName}\n\n🚙 **Vehicle:** ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']}\n\n📋 **Status:** ${memberStatus}\n\n📞 Please contact the owner directly or connect with Trustee OR Secretary.\n\nNeed help with anything else about this vehicle?`;
+                    }
                 }
-                
-                const displayPlate = specificCarData ? specificCarData['Car Number'] : inputPlate;
-                
-                if (specificCarData) {
-                const memberStatus = specificCarData.Member === 'Y' ? 'Active Member' : 'Non-Member';
-                
-                // Privacy protection: Show full first name + masked last name (first 2 chars + asterisks)
-                const firstName = specificCarData['First Name'] || '';
-                const lastName = specificCarData['Last Name'] || '';
-                const maskedLastName = lastName.length >= 2 ? lastName.substring(0, 2) + '*'.repeat(Math.max(0, lastName.length - 2)) : lastName;
-                
-                    return `🚗 **${displayPlate}**\n\n👤 **Owner:** ${firstName} ${maskedLastName}\n\n🚙 **Vehicle:** ${specificCarData['Car Manufacturer']} ${specificCarData['Car Type']}\n\n📋 **Status:** ${memberStatus}\n\n📞 Please contact the owner directly or connect with Trustee OR Secretary.\n\nNeed help with anything else about this vehicle?`;
-                } else {
-                    return `🔍 I don't have information about license plate ${inputPlate} in our database. Please check the number and try again.`;
-                }
-            } else {
-                // Input doesn't look like a valid license plate format
-                return null; // Will fall through to other responses
+            }
+            
+            // If we reach here, no valid car number was found in any of the matches
+            const firstMatch = carNumberMatch[0];
+            const normalizedFirst = firstMatch.replace(/[^A-Z0-9]/g, '').toUpperCase();
+            if (normalizedFirst.length >= 3 && normalizedFirst.length <= 10) {
+                return `🔍 I don't have information about license plate ${firstMatch.toUpperCase()} in our database. Please check the number and try again.`;
             }
         }
         
@@ -578,8 +590,8 @@ class SJIOCChatbot {
     }
 
     isCarNumberQuery(message) {
-        // Check for license plate patterns with flexible spacing and formatting
-        const hasPlatePattern = /[a-z0-9\s-]{4,12}/i.test(message) && /[a-z0-9]/i.test(message);
+        // Enhanced detection for license plate patterns with flexible spacing and formatting
+        const hasPlatePattern = /\b[A-Z0-9\s\-]+\b/i.test(message) && message.replace(/[^A-Z0-9]/gi, '').length >= 3;
         const hasPlateKeywords = message.includes('car number') || message.includes('registration') || message.includes('license plate') || message.includes('plate number');
         return hasPlatePattern || hasPlateKeywords;
     }

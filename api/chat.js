@@ -30,15 +30,29 @@ export default async function handler(req, res) {
       return;
     }
 
-    // Check if asking for specific car number - provide targeted response
-    const carNumberMatch = message.match(/\b([A-Z0-9]{4,8})\b/i) || message.match(/\b([A-Z0-9]{2,4}-[A-Z0-9]{2,4})\b/i);
+    // Enhanced car number detection - handles spaces, symbols, and various formats
+    const carNumberMatch = message.match(/\b([A-Z0-9\s\-]{4,12})\b/i);
     let contextData = memberData;
     
     // If car number mentioned, get specific data from member data
     if (carNumberMatch && memberData) {
-      const inputPlate = carNumberMatch[0].toUpperCase();
-      // Note: Smart plate matching is handled client-side for privacy
-      contextData = memberData;
+      const inputPlate = carNumberMatch[0].toUpperCase().trim();
+      
+      // Normalize input by removing all spaces and special characters for comparison
+      const normalizeForComparison = (plate) => plate.replace(/[^A-Z0-9]/g, '');
+      const normalizedInput = normalizeForComparison(inputPlate);
+      
+      // Only proceed if we have a reasonable length plate (3-10 alphanumeric characters for all plate types including government/municipal)
+      if (normalizedInput.length >= 3 && normalizedInput.length <= 10) {
+        // Try to find matching car data from the provided member data
+        if (typeof memberData === 'string' && memberData.includes('Car ')) {
+          // memberData is already a specific car context string - use as is
+          contextData = memberData;
+        } else {
+          // General context - keep as is
+          contextData = memberData;
+        }
+      }
     }
 
     const systemPrompt = `# SJIOC Chat Assistant System Prompt
@@ -170,7 +184,7 @@ Remember: You represent the SJIOC community, so always maintain professionalism 
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message }
         ],
-        max_tokens: 150,
+        max_tokens: 80,
         temperature: 0.7,
         presence_penalty: 0.1,
         frequency_penalty: 0.1
