@@ -185,12 +185,12 @@ Remember: You represent the SJIOC community, so always maintain professionalism 
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo-0125',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message }
         ],
-        max_tokens: 80,
+        max_tokens: 150,
         temperature: 0.7,
         presence_penalty: 0.1,
         frequency_penalty: 0.1
