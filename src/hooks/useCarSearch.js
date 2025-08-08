@@ -13,22 +13,32 @@ export const useCarSearch = () => {
       try {
         setLoading(true);
         
-        // Try API first, fallback to CSV
-        let response = await fetch('/api/members');
+        // In development, use CSV directly; in production, try API first
         let data;
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            data = result.data;
-          } else {
-            throw new Error('API failed');
-          }
-        } else {
-          // Fallback to CSV
-          response = await fetch('/members_data.csv');
+        const isDev = import.meta.env.DEV;
+        
+        if (isDev) {
+          // Development: Load CSV directly
+          const response = await fetch('/members_data.csv');
           const csvText = await response.text();
           data = parseCSV(csvText);
+        } else {
+          // Production: Try API first, fallback to CSV
+          let response = await fetch('/api/members');
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              data = result.data;
+            } else {
+              throw new Error('API failed');
+            }
+          } else {
+            // Fallback to CSV
+            response = await fetch('/members_data.csv');
+            const csvText = await response.text();
+            data = parseCSV(csvText);
+          }
         }
 
         setMemberData(data);

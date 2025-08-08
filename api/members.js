@@ -17,8 +17,21 @@ export default function handler(req, res) {
   }
 
   try {
-    const filePath = path.join(process.cwd(), 'members_data.json');
-    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const filePath = path.join(process.cwd(), 'members_data.csv');
+    const csvText = fs.readFileSync(filePath, 'utf8');
+    
+    // Parse CSV
+    const lines = csvText.trim().split('\n');
+    const headers = lines[0].split(',').map(header => header.trim());
+    
+    const data = lines.slice(1).map(line => {
+      const values = line.split(',').map(value => value.trim());
+      const member = {};
+      headers.forEach((header, index) => {
+        member[header] = values[index] || '';
+      });
+      return member;
+    });
     
     res.status(200).json({
       success: true,
