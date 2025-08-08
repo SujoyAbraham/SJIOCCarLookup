@@ -1,91 +1,116 @@
-# 🚗 SJIOC Car Lookup Assistant
+# 🚗 SJIOC Car Lookup
 
-Simple car identification system for **St. John's Indian Orthodox Church** - find car owners by license plate number.
+**Modern React-based car identification system for St. John's Indian Orthodox Church**
 
-## ✨ What It Does
+Find car owners instantly by license plate number with privacy protection and mobile-first design.
 
-- **Car Owner Lookup**: Enter any license plate number (ABC-1234, GH1234, etc.)
-- **Smart Search**: Handles plates with/without spaces, dashes, symbols
-- **Privacy Protected**: Shows first name + masked last name (John Sm***)
-- **Admin Panel**: Upload new car data via chat commands
+## ✨ Features
+
+- **🔍 Smart Search**: Handles any plate format (ABC-1234, GH1234, etc.)
+- **📱 Mobile-First**: Optimized for phones with touch-friendly interface
+- **🔒 Privacy Protected**: Shows masked names (John Sm***)
+- **⚡ Real-time**: Instant search with auto-suggestions
+- **🛡️ Secure**: Enhanced security headers and data protection
 
 ## 🚀 Quick Start
 
 ```bash
-# Clone and install
+# Clone and setup
 git clone <repo-url>
 cd SJIOCCarLookup
 npm install
 
-# Set up environment
-cp .env.example .env
-# Add your OPENAI_API_KEY
+# Add environment variables
+echo "OPENAI_API_KEY=your-key-here" > .env
 
-# Run locally
+# Start development server
 npm run dev
 ```
 
-## 💬 How to Use
+## 💡 Usage
 
-1. Click the chat icon
-2. Type a car number: `ABC1234` or `ABC-1234`
-3. Get owner info instantly
+1. **Enter any car number** in the search box
+2. **Get instant results** with owner information
+3. **Works with all formats**: ABC1234, ABC-1234, GJ01AB1234
 
-**Admin Access**: `/admin sjioc-admin-2024`
+## 🏗️ Architecture
 
-## 📊 Example Queries
+**React + Vite** with modern tooling:
+- **Frontend**: React 18, Tailwind CSS, Framer Motion
+- **Backend**: Vercel API routes with OpenAI integration
+- **Security**: CSP headers, input sanitization, privacy masking
+- **Mobile**: Progressive Web App with touch optimization
 
-- `ABC1234` - Find owner of plate ABC1234
-- `GJ01AB1234` - Government/municipal plates supported
-- `Help` - Show available commands
+## 📁 Project Structure
 
-## 🔧 Admin Features
+```
+src/
+├── components/          # React components
+│   ├── MobileApp.jsx   # Main app component
+│   ├── CarSearchInput.jsx
+│   └── SearchResult.jsx
+├── hooks/              # Custom React hooks
+│   └── useCarSearch.js
+├── utils/              # Search engine utilities
+│   └── carSearchEngine.js
+└── index.css          # Tailwind CSS styles
 
-- `/admin <password>` - Login
-- `/upload` - Add new car data (CSV)
-- `/stats` - View database info
-- `/logout` - Exit admin mode
+api/                    # Vercel serverless functions
+├── chat.js            # AI-powered search endpoint
+└── members.js         # Member data API
 
-## 📁 Required CSV Format
+members_data.csv       # Church member database
+```
+
+## 🎨 Tech Stack
+
+- **React 18** - Modern UI framework
+- **Vite** - Fast build tool
+- **Tailwind CSS** - Utility-first styling
+- **Framer Motion** - Smooth animations
+- **OpenAI GPT** - Intelligent search processing
+
+## 🔧 Development
+
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
+```
+
+## 🌐 Deployment
+
+**Vercel (Recommended)**:
+```bash
+vercel --prod
+```
+
+Add `OPENAI_API_KEY` in Vercel dashboard environment variables.
+
+## 📊 CSV Data Format
 
 ```csv
 First Name,Last Name,Member,Car Type,Car Manufacturer,Car Number
 John,Smith,Y,Sedan,Toyota,ABC-1234
 ```
 
-## ⚙️ Configuration
+## 🔒 Security
 
-Set in `.env`:
-```env
-OPENAI_API_KEY=your-openai-api-key
-```
+- **Content Security Policy** headers
+- **Privacy masking** of personal information
+- **Input sanitization** and validation
+- **HTTPS-only** in production
+- **No sensitive data logging**
 
-## 🌐 Deploy to Vercel
+## 📱 Mobile Optimization
 
-```bash
-vercel --prod
-```
-
-Add environment variables in Vercel dashboard.
-
-## 🔒 Security Features
-
-- Name masking for privacy
-- Admin password protection
-- No personal contact info shown
-- Church-appropriate responses
-
-## 🐛 Troubleshooting
-
-- **No response**: Check if data files exist
-- **Upload fails on Vercel**: Expected (read-only filesystem)
-- **API errors**: Verify OPENAI_API_KEY
-
-## 📞 Support
-
-Contact church trustees or create an issue in this repository.
+- **Touch-friendly** 44px minimum tap targets
+- **Dynamic viewport** height support
+- **Offline-ready** PWA capabilities
+- **Fast loading** with code splitting
+- **Responsive design** for all screen sizes
 
 ---
 
-**Made for SJIOC Community** 🏛️  
-*Simple • Secure • Privacy-First*
+**Made with ❤️ for SJIOC Community**  
+*React • Secure • Mobile-First • Privacy-Protected*
