@@ -78,32 +78,51 @@ export const useCarSearch = () => {
     if (!query?.trim()) return null;
 
     try {
-      // Try API first for enhanced security and LLM integration
+      // Step 1: Check for symbol mismatch first (immediate feedback)
+      if (searchEngine) {
+        const searchResult = searchEngine.searchCarNumber(query);
+        
+        // Handle symbol mismatch case immediately
+        if (searchResult && searchResult.matchType === 'symbol_mismatch') {
+          return {
+            type: 'symbol_mismatch',
+            suggestions: searchResult.suggestions,
+            userInput: searchResult.userInput,
+            source: 'local'
+          };
+        }
+      }
+      
+      // Step 2: Try LLM first with context (if API available)
       if (useAPI) {
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: query,
-            memberData: searchEngine ? getContextForQuery(query) : null
-          })
-        });
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              message: query,
+              memberData: searchEngine ? getContextForQuery(query) : null
+            })
+          });
 
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            return {
-              type: 'ai_response',
-              response: result.response,
-              source: 'api'
-            };
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              return {
+                type: 'ai_response',
+                response: result.response,
+                source: 'api'
+              };
+            }
           }
+        } catch (apiError) {
+          console.log('API unavailable, falling back to local search');
         }
       }
 
-      // Fallback to local search
+      // Step 3: Fallback to local search if LLM fails
       if (searchEngine) {
         const searchResult = searchEngine.searchCarNumber(query);
         if (searchResult && searchResult.confidence >= 80) {

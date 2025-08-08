@@ -50,37 +50,72 @@ export class SecureCarSearchEngine {
       };
     }
 
-    // Strategy 2: Normalized match (90% confidence)
+    // Check if input contains symbols (anything except letters, numbers, and spaces)
+    const hasSymbols = /[^A-Z0-9\s]/g.test(cleanInput);
+    const hasOnlySpaces = /^[A-Z0-9\s]+$/g.test(cleanInput);
+
+    if (hasSymbols) {
+      // If user provided symbols, they must match exactly
+      // Check for common symbol variations and suggest correct format
+      const possibleMatches = this.findSymbolSuggestions(cleanInput);
+      if (possibleMatches.length > 0) {
+        return {
+          match: null,
+          matchType: 'symbol_mismatch',
+          confidence: 0,
+          suggestions: possibleMatches,
+          userInput: cleanInput
+        };
+      }
+      // No matches with different symbols - continue to other strategies
+    }
+
+    // Strategy 2: Normalized match (90% confidence) - only for inputs without symbols
     const normalized = this.normalizeCarNumber(cleanInput);
     if (normalized.length >= 3 && normalized.length <= 10) {
       if (this.searchIndex.normalized.has(normalized)) {
+        const match = this.searchIndex.normalized.get(normalized);
+        
+        // If user provided symbols but they don't match, suggest correct format
+        if (hasSymbols && match['Car Number'] !== cleanInput) {
+          return {
+            match: null,
+            matchType: 'symbol_mismatch',
+            confidence: 0,
+            suggestions: [match['Car Number']],
+            userInput: cleanInput
+          };
+        }
+        
         return {
-          match: this.searchIndex.normalized.get(normalized),
+          match: match,
           matchType: 'normalized',
           confidence: 90
         };
       }
 
-      // Strategy 3: Pattern match (85% confidence)
-      const patterns = this.generatePatterns(cleanInput);
-      for (const pattern of patterns) {
-        if (this.searchIndex.patterns.has(pattern)) {
+      // Strategy 3: Pattern match (85% confidence) - only for no-symbol inputs
+      if (hasOnlySpaces) {
+        const patterns = this.generatePatterns(cleanInput);
+        for (const pattern of patterns) {
+          if (this.searchIndex.patterns.has(pattern)) {
+            return {
+              match: this.searchIndex.patterns.get(pattern),
+              matchType: 'pattern',
+              confidence: 85
+            };
+          }
+        }
+
+        // Strategy 4: Fuzzy match (80%+ confidence) - only for no-symbol inputs
+        const fuzzyResult = this.fuzzySearch(normalized);
+        if (fuzzyResult) {
           return {
-            match: this.searchIndex.patterns.get(pattern),
-            matchType: 'pattern',
-            confidence: 85
+            match: fuzzyResult.match,
+            matchType: 'fuzzy',
+            confidence: fuzzyResult.confidence
           };
         }
-      }
-
-      // Strategy 4: Fuzzy match (80%+ confidence)
-      const fuzzyResult = this.fuzzySearch(normalized);
-      if (fuzzyResult) {
-        return {
-          match: fuzzyResult.match,
-          matchType: 'fuzzy',
-          confidence: fuzzyResult.confidence
-        };
       }
     }
 
@@ -89,6 +124,25 @@ export class SecureCarSearchEngine {
 
   normalizeCarNumber(carNumber) {
     return carNumber.replace(/[^A-Z0-9]/g, '');
+  }
+
+  // Find suggestions when user provides wrong symbols
+  findSymbolSuggestions(userInput) {
+    const userNormalized = this.normalizeCarNumber(userInput);
+    const suggestions = [];
+    
+    // Look for car numbers with same alphanumeric characters but different symbols
+    for (const member of this.memberData) {
+      const carNumber = member['Car Number'];
+      if (!carNumber) continue;
+      
+      const carNormalized = this.normalizeCarNumber(carNumber);
+      if (carNormalized === userNormalized && carNumber !== userInput) {
+        suggestions.push(carNumber);
+      }
+    }
+    
+    return suggestions.slice(0, 3); // Return max 3 suggestions
   }
 
   generatePatterns(carNumber) {

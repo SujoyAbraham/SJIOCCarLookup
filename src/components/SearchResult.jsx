@@ -110,6 +110,40 @@ const SearchResult = ({ result, onClose }) => {
     );
   };
 
+  const renderSymbolMismatch = (suggestions, userInput) => {
+    return (
+      <div className="text-center space-y-4">
+        <div className="text-6xl">⚠️</div>
+        <div className="text-lg font-medium text-orange-700">
+          Incorrect Symbol Format
+        </div>
+        <div className="text-gray-600">
+          You searched for <strong className="text-gray-900">"{userInput}"</strong> but the correct format is:
+        </div>
+        
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <div className="text-sm">
+            <strong className="text-orange-800">✅ Correct format:</strong>
+            <div className="mt-2 space-y-2">
+              {suggestions.map((suggestion, index) => (
+                <div key={index} className="font-mono text-lg text-green-700 bg-green-50 px-3 py-2 rounded border">
+                  {suggestion}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="text-sm text-blue-800">
+            <strong>💡 Symbol Rule:</strong> When using symbols like dashes (-), slashes (/), or dots (.), 
+            they must match exactly as registered. Use spaces or no symbols for flexible search.
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderNotFound = () => {
     return (
       <div className="text-center space-y-4">
@@ -162,6 +196,7 @@ const SearchResult = ({ result, onClose }) => {
       <div className="p-6">
         {result.type === 'ai_response' && renderAIResponse(result.response)}
         {result.type === 'local_result' && renderLocalResult(result.data, result.confidence, result.matchType)}
+        {result.type === 'symbol_mismatch' && renderSymbolMismatch(result.suggestions, result.userInput)}
         {result.type === 'not_found' && renderNotFound()}
       </div>
 

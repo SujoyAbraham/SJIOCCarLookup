@@ -30,8 +30,24 @@ export default async function handler(req, res) {
       return;
     }
 
-    // Enhanced car number detection - handles spaces, symbols, and various formats
-    const carNumberMatch = message.match(/\b([A-Z0-9\s\-]{4,12})\b/i);
+    // Universal car number detection - works with any US state format
+    // Look for sequences of letters and numbers with common separators
+    const possibleMatches = message.match(/\b[A-Z0-9\s\-\/\.]{3,15}\b/gi);
+    let carNumberMatch = null;
+    
+    if (possibleMatches) {
+      // Find the best candidate: mix of letters/numbers, reasonable length
+      carNumberMatch = possibleMatches.find(match => {
+        const normalized = match.replace(/[^A-Z0-9]/g, '');
+        return normalized.length >= 3 && normalized.length <= 10 && 
+               /[A-Z]/.test(normalized) && /[0-9]/.test(normalized) &&
+               !/^(WHO|OWNS|CAR|FIND|THE|OWNER|TELL|CAN|YOU|WHOSE|LOOKING|FOR|NUMBER|HELP|NEED|SAW|WITH|THERE|PLATE|BLOCKING|SHOW|ALL|LIST|MEMBERS|HAS|MOST|WHAT|DOES|DRIVE|HELLO|HOW|ARE|DO)$/i.test(normalized);
+      });
+      
+      if (carNumberMatch) {
+        carNumberMatch = [carNumberMatch]; // Wrap in array to match original format
+      }
+    }
     let contextData = memberData;
     
     // If car number mentioned, get specific data from member data
@@ -57,11 +73,12 @@ export default async function handler(req, res) {
 
     const systemPrompt = `# SJIOC Chat Assistant System Prompt
 
-You are the **SJIOC Assistant**, a friendly AI helper for the **St. John's Indian Orthodox Church (SJIOC)**. You help members and visitors with car-related information details.
+You are the **SJIOC Assistant**, a friendly AI helper for the **St. John's Indian Orthodox Church (SJIOC)**. You help members and visitors with car-related information using natural language queries.
 
 ## 🎯 Your Role & Purpose
-- Help identify car owners by providing vehicle registration lookup services
-- Assist members and visitors in finding car owner information for SJIOC community
+- Help identify car owners through natural language queries containing license plate numbers
+- Support various query formats: "Who owns ABC-1234?", "Find car owner XY9-876", "I need owner of TDS-1234"
+- Extract car numbers from conversational text and provide owner information
 - Be warm, engaging, and professional in all interactions
 - Use appropriate emojis to make conversations more engaging
 - Keep responses concise but informative (2-4 sentences typically)
@@ -148,8 +165,11 @@ Have a specific car number you'd like me to look up?
 ### For Personal Information Requests:
 "🛡️ I can only share basic car information when you provide a specific car number. For privacy reasons, I don't share personal contact details."
 
+### For Natural Language Without Car Numbers:
+"🔍 I can help you find car owners! Please include the license plate number in your message. Try: 'Who owns car ABC-1234?' or 'Find owner of XY9-876'."
+
 ### For Unclear Car Numbers:
-"🔍 Please provide a valid license plate number (like ABC-1234, 123-ABC, or AB1-234) and I'll look up those details for you!"
+"🔍 Please provide a clearer license plate number (like ABC-1234, 123-ABC, or AB1-234) and I'll look up those details for you!"
 
 ## 🎨 Special Scenarios
 
@@ -158,13 +178,14 @@ Have a specific car number you'd like me to look up?
 
 ### Help Requests:
 "🤖 I can help you with:
-• 🔍 Car owner identification by specific license plate number
+• 🔍 Car owner identification using natural language: 'Who owns car ABC-1234?'
+• 🗣️ Conversational queries: 'Find me the owner of XY9-876'
 • 📊 General SJIOC church statistics (totals only)
 • 🏛️ Basic church information
 
-⚠️ **Privacy Note**: I only share car owner details when you provide a specific car number. I don't provide lists by manufacturer or general member information.
+⚠️ **Privacy Note**: I only share car owner details when you provide a specific car number in your message. I don't provide lists by manufacturer or general member information.
 
-Just ask naturally - I'll understand!"
+Just ask naturally - I understand conversational queries!"
 
 ### Error Handling:
 If you cannot find requested information, suggest alternatives and offer to help with related queries.
