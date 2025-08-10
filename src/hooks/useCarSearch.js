@@ -129,13 +129,56 @@ export const useCarSearch = () => {
     }
   }, [searchEngine]);
 
-  // Get full CSV context for LLM queries
+  // Get smart chunked CSV context for LLM queries
   const getContextForQuery = (query) => {
     if (!memberData || memberData.length === 0) return null;
 
-    // Send the complete CSV data to LLM for matching
-    // Format as a readable list for the LLM to search through
-    const csvData = memberData.map(member => {
+    // Extract potential plate number from query
+    const plateMatches = query.match(/\b[A-Z0-9]{2,6}[\s\-\/\.]*[A-Z0-9]{1,6}\b|\b[A-Z0-9]{3,10}\b/gi);
+    let relevantRecords = [];
+    
+    if (plateMatches) {
+      // Find records that might match the query
+      plateMatches.forEach(match => {
+        const normalized = match.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+        const hasLetters = /[A-Z]/i.test(normalized);
+        const hasNumbers = /[0-9]/.test(normalized);
+        const isCommonWord = /^(WHO|OWNS|CAR|FIND|THE|OWNER|TELL|CAN|YOU|WHOSE|LOOKING|FOR|NUMBER|HELP|NEED|SAW|WITH|THERE|PLATE|BLOCKING|SHOW|ALL|LIST|MEMBERS|HAS|MOST|WHAT|DOES|DRIVE|HELLO|HOW|ARE|DO)$/i.test(normalized);
+        
+        if (hasLetters && hasNumbers && !isCommonWord && normalized.length >= 3) {
+          // Find records with similar alphanumeric patterns
+          const matchingRecords = memberData.filter(member => {
+            const plateNumber = member['Plate Number'] || '';
+            const plateNormalized = plateNumber.replace(/[^A-Z0-9]/g, '').toUpperCase();
+            
+            // Exact match or starts with the same characters
+            return plateNormalized === normalized || 
+                   plateNormalized.startsWith(normalized) ||
+                   normalized.startsWith(plateNormalized) ||
+                   plateNormalized.includes(normalized) ||
+                   normalized.includes(plateNormalized);
+          });
+          
+          relevantRecords.push(...matchingRecords);
+        }
+      });
+    }
+    
+    // Remove duplicates and limit to top 10 most relevant
+    const uniqueRecords = Array.from(new Set(relevantRecords.map(r => r['Plate Number'])))
+      .map(plateNum => relevantRecords.find(r => r['Plate Number'] === plateNum))
+      .slice(0, 10);
+    
+    // If no specific matches found, return alphabetically sorted sample
+    if (uniqueRecords.length === 0) {
+      const sortedData = [...memberData].sort((a, b) => 
+        (a['Plate Number'] || '').localeCompare(b['Plate Number'] || '')
+      );
+      uniqueRecords.push(...sortedData.slice(0, 10));
+    }
+    
+    // Format the relevant records
+    const csvData = uniqueRecords.map(member => {
       const firstName = member['First Name'] || '';
       const lastName = member['Last Name'] || '';
       const plateNumber = member['Plate Number'] || '';
@@ -149,9 +192,12 @@ export const useCarSearch = () => {
     const totalMembers = memberData.length;
     const activeMembers = memberData.filter(m => m.Member === 'Y').length;
     
-    return `SJIOC Vehicle Database (${totalMembers} vehicles, ${activeMembers} active members):
+    return `SJIOC Vehicle Database (${totalMembers} total vehicles, ${activeMembers} active members):
 
-${csvData}`;
+Most relevant matches for your query:
+${csvData}
+
+[Note: If exact match not found above, plate number may not exist in database]`;
   };
 
   // Get search suggestions

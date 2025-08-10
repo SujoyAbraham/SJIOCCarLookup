@@ -32,13 +32,14 @@ export default async function handler(req, res) {
 
     // Universal plate number detection - works with any US state format
     // Look for sequences of letters and numbers with common separators
-    const possibleMatches = message.match(/[A-Z0-9]+[\s\-\/\.]*[A-Z0-9]+/gi);
+    // Look for potential plate numbers: continuous alphanumeric or with separators
+    const possibleMatches = message.match(/\b[A-Z0-9]{2,6}[\s\-\/\.]*[A-Z0-9]{1,6}\b|\b[A-Z0-9]{3,10}\b/gi);
     let plateNumberMatch = null;
     
     if (possibleMatches) {
       // Find the best candidate: mix of letters/numbers, reasonable length
       plateNumberMatch = possibleMatches.find(match => {
-        const normalized = match.replace(/[^A-Z0-9]/g, '');
+        const normalized = match.replace(/[^A-Z0-9]/gi, '').toUpperCase();
         return normalized.length >= 3 && normalized.length <= 10 && 
                /[A-Z]/.test(normalized) && /[0-9]/.test(normalized) &&
                !/^(WHO|OWNS|CAR|FIND|THE|OWNER|TELL|CAN|YOU|WHOSE|LOOKING|FOR|NUMBER|HELP|NEED|SAW|WITH|THERE|PLATE|BLOCKING|SHOW|ALL|LIST|MEMBERS|HAS|MOST|WHAT|DOES|DRIVE|HELLO|HOW|ARE|DO)$/i.test(normalized);
