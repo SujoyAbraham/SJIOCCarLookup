@@ -74,26 +74,11 @@ export const useCarSearch = () => {
   };
 
   // Search function with security
-  const searchCarNumber = useCallback(async (query, useAPI = true) => {
+  const searchPlateNumber = useCallback(async (query, useAPI = true) => {
     if (!query?.trim()) return null;
 
     try {
-      // Step 1: Check for symbol mismatch first (immediate feedback)
-      if (searchEngine) {
-        const searchResult = searchEngine.searchCarNumber(query);
-        
-        // Handle symbol mismatch case immediately
-        if (searchResult && searchResult.matchType === 'symbol_mismatch') {
-          return {
-            type: 'symbol_mismatch',
-            suggestions: searchResult.suggestions,
-            userInput: searchResult.userInput,
-            source: 'local'
-          };
-        }
-      }
-      
-      // Step 2: Try LLM first with context (if API available)
+      // Step 1: Try LLM first with full CSV context (if API available)
       if (useAPI) {
         try {
           const response = await fetch('/api/chat', {
@@ -103,7 +88,7 @@ export const useCarSearch = () => {
             },
             body: JSON.stringify({
               message: query,
-              memberData: searchEngine ? getContextForQuery(query) : null
+              memberData: getContextForQuery(query) // Send full CSV data
             })
           });
 
@@ -122,9 +107,9 @@ export const useCarSearch = () => {
         }
       }
 
-      // Step 3: Fallback to local search if LLM fails
+      // Step 2: Fallback to local search if LLM fails
       if (searchEngine) {
-        const searchResult = searchEngine.searchCarNumber(query);
+        const searchResult = searchEngine.searchPlateNumber(query);
         if (searchResult && searchResult.confidence >= 80) {
           const maskedInfo = searchEngine.maskPersonalInfo(searchResult.match);
           return {
@@ -144,26 +129,29 @@ export const useCarSearch = () => {
     }
   }, [searchEngine]);
 
-  // Get context for API queries
+  // Get full CSV context for LLM queries
   const getContextForQuery = (query) => {
-    if (!searchEngine) return null;
+    if (!memberData || memberData.length === 0) return null;
 
-    const searchResult = searchEngine.searchCarNumber(query);
-    if (searchResult && searchResult.confidence >= 85) {
-      const member = searchResult.match;
+    // Send the complete CSV data to LLM for matching
+    // Format as a readable list for the LLM to search through
+    const csvData = memberData.map(member => {
       const firstName = member['First Name'] || '';
       const lastName = member['Last Name'] || '';
-      const maskedLastName = lastName.length >= 2 
-        ? lastName.substring(0, 2) + '*'.repeat(Math.max(0, lastName.length - 2))
-        : lastName;
+      const plateNumber = member['Plate Number'] || '';
+      const manufacturer = member['Car Manufacturer'] || '';
+      const carType = member['Car Type'] || '';
+      const memberStatus = member.Member === 'Y' ? 'Active Member' : 'Non-Member';
       
-      return `Car ${member['Car Number']}: Owner ${firstName} ${maskedLastName}, ${member['Car Manufacturer']} ${member['Car Type']} - ${member.Member === 'Y' ? 'Active Member' : 'Non-Member'}`;
-    }
+      return `${plateNumber}: ${firstName} ${lastName}, ${manufacturer} ${carType} - ${memberStatus}`;
+    }).join('\n');
 
-    // Return general context
     const totalMembers = memberData.length;
     const activeMembers = memberData.filter(m => m.Member === 'Y').length;
-    return `St. John's Indian Orthodox Church (SJIOC) has ${totalMembers} registered vehicles with ${activeMembers} active members.`;
+    
+    return `SJIOC Vehicle Database (${totalMembers} vehicles, ${activeMembers} active members):
+
+${csvData}`;
   };
 
   // Get search suggestions
@@ -174,13 +162,13 @@ export const useCarSearch = () => {
     const suggestions = [];
 
     for (const member of memberData) {
-      const carNumber = member['Car Number'] || '';
+      const carNumber = member['Plate Number'] || '';
       const normalizedCarNumber = carNumber.replace(/[^A-Z0-9]/g, '');
       
       if (normalizedCarNumber.startsWith(normalized) && suggestions.length < 5) {
         const maskedInfo = searchEngine.maskPersonalInfo(member);
         suggestions.push({
-          carNumber: carNumber,
+          plateNumber: carNumber,
           displayText: `${carNumber} - ${maskedInfo.displayName}`,
           vehicle: `${member['Car Manufacturer']} ${member['Car Type']}`
         });
@@ -191,7 +179,7 @@ export const useCarSearch = () => {
   }, [searchEngine, memberData]);
 
   return {
-    searchCarNumber,
+    searchPlateNumber,
     getSearchSuggestions,
     loading,
     error,

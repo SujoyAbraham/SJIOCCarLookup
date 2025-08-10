@@ -59,7 +59,7 @@ const SearchResult = ({ result, onClose }) => {
       <div className="space-y-4">
         <div className="text-center">
           <div className="text-2xl font-bold text-gray-900 mb-2">
-            🚗 {data.carNumber}
+            🚗 {data.plateNumber}
           </div>
         </div>
 
@@ -110,15 +110,15 @@ const SearchResult = ({ result, onClose }) => {
     );
   };
 
-  const renderSymbolMismatch = (suggestions, userInput) => {
+  const renderSymbolMismatch = (suggestions, userInput, customMessage) => {
     return (
       <div className="text-center space-y-4">
         <div className="text-6xl">⚠️</div>
         <div className="text-lg font-medium text-orange-700">
-          Incorrect Symbol Format
+          {customMessage ? 'Exact Format Required' : 'Incorrect Symbol Format'}
         </div>
         <div className="text-gray-600">
-          You searched for <strong className="text-gray-900">"{userInput}"</strong> but the correct format is:
+          You searched for <strong className="text-gray-900">"{userInput}"</strong> but {customMessage || 'the correct format is'}:
         </div>
         
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
@@ -149,10 +149,10 @@ const SearchResult = ({ result, onClose }) => {
       <div className="text-center space-y-4">
         <div className="text-6xl">🔍</div>
         <div className="text-lg font-medium text-gray-700">
-          No car found
+          No plate found
         </div>
         <div className="text-gray-600">
-          Please check the car number and try again
+          Please check the plate number and try again
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
           <div className="text-sm text-gray-600">
@@ -197,6 +197,7 @@ const SearchResult = ({ result, onClose }) => {
         {result.type === 'ai_response' && renderAIResponse(result.response)}
         {result.type === 'local_result' && renderLocalResult(result.data, result.confidence, result.matchType)}
         {result.type === 'symbol_mismatch' && renderSymbolMismatch(result.suggestions, result.userInput)}
+        {result.type === 'format_mismatch' && renderSymbolMismatch(result.suggestions, result.userInput, result.message)}
         {result.type === 'not_found' && renderNotFound()}
       </div>
 

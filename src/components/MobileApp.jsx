@@ -9,7 +9,7 @@ const MobileApp = () => {
   const [isSearching, setIsSearching] = useState(false);
   
   const {
-    searchCarNumber,
+    searchPlateNumber,
     getSearchSuggestions,
     loading: dataLoading,
     error,
@@ -23,7 +23,7 @@ const MobileApp = () => {
   const handleSearch = async (query) => {
     setIsSearching(true);
     try {
-      const result = await searchCarNumber(query);
+      const result = await searchPlateNumber(query);
       if (result) {
         setCurrentResult(result);
       } else {
@@ -39,7 +39,7 @@ const MobileApp = () => {
 
   // Handle suggestion selection
   const handleSuggestionSelect = (suggestion) => {
-    handleSearch(suggestion.carNumber);
+    handleSearch(suggestion.plateNumber);
   };
 
   // Update suggestions when typing
@@ -146,7 +146,7 @@ const MobileApp = () => {
                   Welcome to SJIOC Car Lookup
                 </h2>
                 <p className="text-gray-600 text-sm max-w-xs mx-auto">
-                  Enter any car number above to find the owner. 
+                  Enter any plate number above to find the owner. 
                   We support all formats including spaces and symbols.
                 </p>
               </div>
@@ -165,7 +165,7 @@ const MobileApp = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span>📱</span>
-                    <span>Works with any car number format</span>
+                    <span>Works with any plate number format</span>
                   </div>
                 </div>
               </div>

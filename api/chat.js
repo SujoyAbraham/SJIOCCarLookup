@@ -30,29 +30,29 @@ export default async function handler(req, res) {
       return;
     }
 
-    // Universal car number detection - works with any US state format
+    // Universal plate number detection - works with any US state format
     // Look for sequences of letters and numbers with common separators
-    const possibleMatches = message.match(/\b[A-Z0-9\s\-\/\.]{3,15}\b/gi);
-    let carNumberMatch = null;
+    const possibleMatches = message.match(/[A-Z0-9]+[\s\-\/\.]*[A-Z0-9]+/gi);
+    let plateNumberMatch = null;
     
     if (possibleMatches) {
       // Find the best candidate: mix of letters/numbers, reasonable length
-      carNumberMatch = possibleMatches.find(match => {
+      plateNumberMatch = possibleMatches.find(match => {
         const normalized = match.replace(/[^A-Z0-9]/g, '');
         return normalized.length >= 3 && normalized.length <= 10 && 
                /[A-Z]/.test(normalized) && /[0-9]/.test(normalized) &&
                !/^(WHO|OWNS|CAR|FIND|THE|OWNER|TELL|CAN|YOU|WHOSE|LOOKING|FOR|NUMBER|HELP|NEED|SAW|WITH|THERE|PLATE|BLOCKING|SHOW|ALL|LIST|MEMBERS|HAS|MOST|WHAT|DOES|DRIVE|HELLO|HOW|ARE|DO)$/i.test(normalized);
       });
       
-      if (carNumberMatch) {
-        carNumberMatch = [carNumberMatch]; // Wrap in array to match original format
+      if (plateNumberMatch) {
+        plateNumberMatch = [plateNumberMatch]; // Wrap in array to match original format
       }
     }
     let contextData = memberData;
     
-    // If car number mentioned, get specific data from member data
-    if (carNumberMatch && memberData) {
-      const inputPlate = carNumberMatch[0].toUpperCase().trim();
+    // If plate number mentioned, get specific data from member data
+    if (plateNumberMatch && memberData) {
+      const inputPlate = plateNumberMatch[0].toUpperCase().trim();
       
       // Normalize input by removing all spaces and special characters for comparison
       const normalizeForComparison = (plate) => plate.replace(/[^A-Z0-9]/g, '');
@@ -103,7 +103,7 @@ You are the **SJIOC Assistant**, a friendly AI helper for the **St. John's India
 - ❌ **FORBIDDEN**: Provide automotive maintenance advice or technical car information
 - ❌ **FORBIDDEN**: Share any car or owner information without a specific car number
 
-### Car Number Queries:
+### Plate Number Queries:
 When users ask about specific license plate numbers:
 - Show owner name with proper masking: "[Full First Name] [First 2 chars of Last Name]****"
 - Display car manufacturer and type
@@ -117,7 +117,7 @@ ${contextData || 'General SJIOC information available'}
 ## 🎯 CRITICAL INSTRUCTION:
 - **ONLY use the specific car information provided in the Data Context above**
 - **NEVER invent, guess, or hallucinate car owner names, vehicle details, or any information**
-- **If no specific car data is provided in context, ask user to provide a valid car number**
+- **If no specific car data is provided in context, ask user to provide a valid plate number**
 - **Always respond based ONLY on the actual data provided - never make up information**
 
 ## 💬 Response Style Guidelines

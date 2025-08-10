@@ -32,7 +32,7 @@ const CarSearchInput = ({ onSearch, onSuggestionSelect, suggestions = [], loadin
   };
 
   const handleSuggestionClick = (suggestion) => {
-    setInput(suggestion.carNumber);
+    setInput(suggestion.plateNumber);
     setShowSuggestions(false);
     onSuggestionSelect(suggestion);
   };
@@ -77,7 +77,7 @@ const CarSearchInput = ({ onSearch, onSuggestionSelect, suggestions = [], loadin
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onFocus={() => input.length >= 2 && setShowSuggestions(true)}
-            placeholder="Enter car number (e.g., ABC-1234)"
+            placeholder="Enter plate number (e.g., ABC-1234)"
             className="w-full px-4 py-3 pr-12 text-lg border-2 border-gray-300 rounded-xl 
                      focus:border-church-primary focus:outline-none transition-colors
                      placeholder-gray-400 bg-white shadow-sm"
@@ -118,7 +118,7 @@ const CarSearchInput = ({ onSearch, onSuggestionSelect, suggestions = [], loadin
             >
               {suggestions.map((suggestion, index) => (
                 <motion.button
-                  key={suggestion.carNumber}
+                  key={suggestion.plateNumber}
                   type="button"
                   onClick={() => handleSuggestionClick(suggestion)}
                   className={`w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0
@@ -126,7 +126,7 @@ const CarSearchInput = ({ onSearch, onSuggestionSelect, suggestions = [], loadin
                   whileHover={{ backgroundColor: '#f9fafb' }}
                 >
                   <div className="font-medium text-gray-900">
-                    {suggestion.carNumber}
+                    {suggestion.plateNumber}
                   </div>
                   <div className="text-sm text-gray-600">
                     {suggestion.displayText}

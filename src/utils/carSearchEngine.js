@@ -1,5 +1,5 @@
 /**
- * Enhanced Car Number Search Engine for React
+ * Enhanced Plate Number Search Engine for React
  * Comprehensive pattern matching with security features
  */
 
@@ -12,31 +12,25 @@ export class SecureCarSearchEngine {
   buildSearchIndex() {
     const index = {
       exact: new Map(),
-      normalized: new Map(),
-      patterns: new Map()
+      normalized: new Map()
     };
 
     this.memberData.forEach(member => {
-      const carNumber = member['Car Number'];
+      const carNumber = member['Plate Number'];
       if (!carNumber) return;
 
       // Exact match index
       index.exact.set(carNumber.toUpperCase(), member);
 
       // Normalized index (alphanumeric only)
-      const normalized = this.normalizeCarNumber(carNumber);
+      const normalized = this.normalizePlateNumber(carNumber);
       index.normalized.set(normalized, member);
-
-      // Pattern variations
-      this.generatePatterns(carNumber).forEach(pattern => {
-        index.patterns.set(pattern, member);
-      });
     });
 
     return index;
   }
 
-  searchCarNumber(userInput) {
+  searchPlateNumber(userInput) {
     if (!userInput || typeof userInput !== 'string') return null;
 
     const cleanInput = userInput.trim().toUpperCase();
@@ -50,130 +44,74 @@ export class SecureCarSearchEngine {
       };
     }
 
-    // Check if input contains symbols (anything except letters, numbers, and spaces)
-    const hasSymbols = /[^A-Z0-9\s]/g.test(cleanInput);
-    const hasOnlySpaces = /^[A-Z0-9\s]+$/g.test(cleanInput);
-
-    if (hasSymbols) {
-      // If user provided symbols, they must match exactly
-      // Check for common symbol variations and suggest correct format
-      const possibleMatches = this.findSymbolSuggestions(cleanInput);
-      if (possibleMatches.length > 0) {
-        return {
-          match: null,
-          matchType: 'symbol_mismatch',
-          confidence: 0,
-          suggestions: possibleMatches,
-          userInput: cleanInput
-        };
-      }
-      // No matches with different symbols - continue to other strategies
-    }
-
-    // Strategy 2: Normalized match (90% confidence) - only for inputs without symbols
-    const normalized = this.normalizeCarNumber(cleanInput);
+    // Strategy 2: Normalized match - allows flexible formatting (dash, space, or both)
+    const normalized = this.normalizePlateNumber(cleanInput);
     if (normalized.length >= 3 && normalized.length <= 10) {
       if (this.searchIndex.normalized.has(normalized)) {
         const match = this.searchIndex.normalized.get(normalized);
-        
-        // If user provided symbols but they don't match, suggest correct format
-        if (hasSymbols && match['Car Number'] !== cleanInput) {
-          return {
-            match: null,
-            matchType: 'symbol_mismatch',
-            confidence: 0,
-            suggestions: [match['Car Number']],
-            userInput: cleanInput
-          };
-        }
-        
         return {
           match: match,
           matchType: 'normalized',
-          confidence: 90
+          confidence: 95
         };
-      }
-
-      // Strategy 3: Pattern match (85% confidence) - only for no-symbol inputs
-      if (hasOnlySpaces) {
-        const patterns = this.generatePatterns(cleanInput);
-        for (const pattern of patterns) {
-          if (this.searchIndex.patterns.has(pattern)) {
-            return {
-              match: this.searchIndex.patterns.get(pattern),
-              matchType: 'pattern',
-              confidence: 85
-            };
-          }
-        }
-
-        // Strategy 4: Fuzzy match (80%+ confidence) - only for no-symbol inputs
-        const fuzzyResult = this.fuzzySearch(normalized);
-        if (fuzzyResult) {
-          return {
-            match: fuzzyResult.match,
-            matchType: 'fuzzy',
-            confidence: fuzzyResult.confidence
-          };
-        }
       }
     }
 
+    // No matches found
     return null;
   }
 
-  normalizeCarNumber(carNumber) {
+  normalizePlateNumber(carNumber) {
     return carNumber.replace(/[^A-Z0-9]/g, '');
   }
 
-  // Find suggestions when user provides wrong symbols
+  // Find exact CSV format suggestions when user provides different formatting
   findSymbolSuggestions(userInput) {
-    const userNormalized = this.normalizeCarNumber(userInput);
+    const userNormalized = this.normalizePlateNumber(userInput);
     const suggestions = [];
     
-    // Look for car numbers with same alphanumeric characters but different symbols
+    // Look for plate numbers with same alphanumeric characters but different formatting
     for (const member of this.memberData) {
-      const carNumber = member['Car Number'];
-      if (!carNumber) continue;
+      const plateNumber = member['Plate Number'];
+      if (!plateNumber) continue;
       
-      const carNormalized = this.normalizeCarNumber(carNumber);
-      if (carNormalized === userNormalized && carNumber !== userInput) {
-        suggestions.push(carNumber);
+      const plateNormalized = this.normalizePlateNumber(plateNumber);
+      if (plateNormalized === userNormalized && plateNumber !== userInput) {
+        suggestions.push(plateNumber); // Return the exact CSV format
       }
     }
     
-    return suggestions.slice(0, 3); // Return max 3 suggestions
+    return suggestions.slice(0, 1); // Return only the exact CSV format
   }
 
-  generatePatterns(carNumber) {
-    const patterns = new Set();
-    const normalized = this.normalizeCarNumber(carNumber);
+  generateCommonVariations(plateNumber) {
+    const variations = new Set();
+    const normalized = this.normalizePlateNumber(plateNumber);
     
-    patterns.add(carNumber.toUpperCase());
-    patterns.add(normalized);
-
-    if (normalized.length >= 6) {
+    // Only generate the standard CSV format variations
+    if (normalized.length >= 3) {
       const chars = normalized.split('');
       
-      // Common Indian formats
-      if (chars.length === 7 && /^[A-Z]{3}[0-9]{4}$/.test(normalized)) {
-        patterns.add(`${chars.slice(0, 3).join('')}-${chars.slice(3).join('')}`);
-        patterns.add(`${chars.slice(0, 3).join('')} ${chars.slice(3).join('')}`);
+      // Standard US format patterns found in our CSV: XXX-XXXX, XXX-XXX, XX#-### etc
+      for (let i = 2; i <= chars.length - 1 && i <= 4; i++) {
+        const part1 = chars.slice(0, i).join('');
+        const part2 = chars.slice(i).join('');
+        if (part2.length >= 1) {
+          variations.add(`${part1}-${part2}`);
+        }
       }
-
-      if (chars.length === 10 && /^[A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{4}$/.test(normalized)) {
-        patterns.add(`${chars.slice(0, 2).join('')}-${chars.slice(2, 4).join('')}-${chars.slice(4, 6).join('')}-${chars.slice(6).join('')}`);
-        patterns.add(`${chars.slice(0, 2).join('')} ${chars.slice(2, 4).join('')} ${chars.slice(4, 6).join('')} ${chars.slice(6).join('')}`);
-      }
-
-      // Generic patterns
-      for (let i = 2; i <= chars.length - 2; i++) {
-        patterns.add(`${chars.slice(0, i).join('')}-${chars.slice(i).join('')}`);
-        patterns.add(`${chars.slice(0, i).join('')} ${chars.slice(i).join('')}`);
+      
+      // Also try with spaces (though CSV uses dashes)
+      for (let i = 2; i <= chars.length - 1 && i <= 4; i++) {
+        const part1 = chars.slice(0, i).join('');
+        const part2 = chars.slice(i).join('');
+        if (part2.length >= 1) {
+          variations.add(`${part1} ${part2}`);
+        }
       }
     }
 
-    return Array.from(patterns);
+    return Array.from(variations);
   }
 
   fuzzySearch(normalizedInput) {
@@ -224,7 +162,7 @@ export class SecureCarSearchEngine {
   isValidCarNumberFormat(input) {
     if (!input || typeof input !== 'string') return false;
     
-    const normalized = this.normalizeCarNumber(input);
+    const normalized = this.normalizePlateNumber(input);
     
     if (normalized.length < 3 || normalized.length > 10) return false;
     
@@ -246,7 +184,7 @@ export class SecureCarSearchEngine {
 
     return {
       displayName: `${firstName} ${maskedLastName}`,
-      carNumber: memberData['Car Number'],
+      plateNumber: memberData['Plate Number'],
       manufacturer: memberData['Car Manufacturer'],
       carType: memberData['Car Type'],
       memberStatus: memberData.Member === 'Y' ? 'Active Member' : 'Non-Member'

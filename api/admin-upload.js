@@ -23,7 +23,7 @@ function validateCSVStructure(csvText) {
   }
   
   const headers = lines[0].split(',').map(h => h.trim());
-  const requiredHeaders = ['First Name', 'Last Name', 'Member', 'Car Type', 'Car Manufacturer', 'Car Number'];
+  const requiredHeaders = ['First Name', 'Last Name', 'Member', 'Car Type', 'Car Manufacturer', 'Plate Number'];
   
   for (const required of requiredHeaders) {
     if (!headers.includes(required)) {
@@ -31,15 +31,15 @@ function validateCSVStructure(csvText) {
     }
   }
   
-  // Validate car number format in data rows
+  // Validate plate number format in data rows
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(',').map(v => v.trim());
-    const carNumberIndex = headers.indexOf('Car Number');
-    const carNumber = values[carNumberIndex];
+    const plateNumberIndex = headers.indexOf('Plate Number');
+    const plateNumber = values[plateNumberIndex];
     
     // Allow various US license plate formats: XXX-####, ###-XXX, XX#-###, ####-XX, etc.
-    if (carNumber && !/^[A-Z0-9]{2,4}-[A-Z0-9]{2,4}$/i.test(carNumber)) {
-      throw new Error(`Invalid car number format at row ${i + 1}: ${carNumber}. Expected US license plate format (e.g., ABC-1234, 123-ABC, AB1-234)`);
+    if (plateNumber && !/^[A-Z0-9]{2,4}-[A-Z0-9]{2,4}$/i.test(plateNumber)) {
+      throw new Error(`Invalid plate number format at row ${i + 1}: ${plateNumber}. Expected US license plate format (e.g., ABC-1234, 123-ABC, AB1-234)`);
     }
   }
   
